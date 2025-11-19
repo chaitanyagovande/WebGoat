@@ -1,0 +1,36 @@
+{
+  "buildx.build.provenance": {
+    "buildType": "https://mobyproject.org/buildkit@v1",
+    "materials": [
+      {
+        "uri": "pkg:docker/eclipse-temurin@23-jdk-noble?platform=linux%2Farm64",
+        "digest": {
+          "sha256": "485b745abfe9f19a33f9613c411406ed4f535bef4b3b752642ff86ad8400b7a0"
+        }
+      }
+    ],
+    "invocation": {
+      "configSource": {
+        "entryPoint": "Dockerfile"
+      },
+      "parameters": {
+        "frontend": "dockerfile.v0",
+        "locals": [
+          {
+            "name": "context"
+          },
+          {
+            "name": "dockerfile"
+          }
+        ]
+      },
+      "environment": {
+        "platform": "linux/arm64"
+      }
+    }
+  },
+  "buildx.build.ref": "rancher-desktop/rancher-desktop/6b6ayo0brzk9ol90shvzumg1i",
+  "containerimage.config.digest": "sha256:129043e3252027f559af6dc0a1540879e3882a346d48c0b4af760d1e0efaa788",
+  "containerimage.digest": "sha256:b16b128a14861c701a44ff5beb12b27161e22c2d5f55d6f920087646930513ba",
+  "image.name": "psazuse.jfrog.io/cg-lab-docker/cg-mvn-docker-webgoat:2025-01-28_12-50-52"
+}

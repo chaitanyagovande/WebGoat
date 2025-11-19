@@ -56,6 +56,10 @@ TestClass.class
 /.gitconfig
 
 webgoat.gitconfig
+
+.jfrog/
+.frogbot/
+
 node_modules/
 /test-results/
 /playwright-report/
