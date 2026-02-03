@@ -61,6 +61,7 @@ jobs:
           version: latest  #2.71.0
           oidc-provider-name: ${{vars.JF_OIDC_PROVIDER_NAME}}
           disable-job-summary: ${{env.JOB_SUMMARY}}
+          disable-auto-build-publish: true
 
       - name: "Clone VCS"
         uses: actions/checkout@v4 # ref: https://github.com/actions/checkout
@@ -158,9 +159,9 @@ jobs:
       - name: "BuildInfo: Collect env"
         run: jf rt bce ${{env.BUILD_NAME}} ${{env.BUILD_ID}} 
 
-      - name: "BuildInfo: Add Dependencies"
-        continue-on-error: true
-        run: jf rt bad ${{env.BUILD_NAME}} ${{env.BUILD_ID}}
+      # - name: "BuildInfo: Add Dependencies"
+      #   continue-on-error: true
+      #   run: jf rt bad ${{env.BUILD_NAME}} ${{env.BUILD_ID}}
       
       - name: "BuildInfo: Add VCS info"
         run: jf rt bag ${{env.BUILD_NAME}} ${{env.BUILD_ID}} 
