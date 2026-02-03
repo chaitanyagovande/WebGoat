@@ -60,7 +60,6 @@ webgoat.gitconfig
 .jfrog/
 .frogbot/
 
-node_modules/
 /test-results/
 /playwright-report/
 /blob-report/
