@@ -60,6 +60,19 @@
     <url>https://github.com/WebGoat/WebGoat/issues</url>
   </issueManagement>
 
+  <distributionManagement>
+    <repository>
+      <id>central</id>
+      <name>cg-lab-mvn-by-virtual</name>
+      <url>https://psazuse.jfrog.io/artifactory/cg-lab-mvn-by-virtual</url>
+    </repository>
+    <snapshotRepository>
+      <id>snapshots</id>
+      <name>cg-lab-mvn-by-virtual</name>
+      <url>https://psazuse.jfrog.io/artifactory/cg-lab-mvn-by-virtual</url>
+    </snapshotRepository>
+  </distributionManagement>
+
   <properties>
     <!-- Shared properties with plugins and version numbers across submodules-->
     <asciidoctorj.version>3.0.0</asciidoctorj.version>
