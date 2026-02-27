@@ -1,7 +1,12 @@
 name: "JFCLI: JAVA"
 on:
   workflow_dispatch:
-
+    inputs:
+      xrayWatches:
+        description: 'Xray Watches'
+        required: false
+        default: ''
+        type: string
   push:
     branches: ["main"]
 permissions:
@@ -15,6 +20,7 @@ env:
   JF_RT_URL: "https://${{vars.JF_NAME}}.jfrog.io"
   BUILD_NAME: "cg-webgoat" # spring-petclinic-3.5.0-SNAPSHOT.jar
   #APP_TRUST_BUILD_NAME: "AppTrust-spring-petclinic"
+  JFROG_XRAY_WATCHES: ${{ github.event.inputs.xrayWatches}}
   JOB_SUMMARY: false
   JFROG_CLI_LOG_LEVEL: DEBUG # DEBUG, INFO, WARN, ERROR
   JAVA_DISTRIBUTION: 'temurin'
@@ -133,7 +139,11 @@ jobs:
         timeout-minutes: 15 
         # continue-on-error: true 
         run: |
-          jf audit --mvn --sast=true --sca=true --secrets=true --licenses=true --validate-secrets=true --vuln=true --format=table --extended-table=true --threads=100 --fail=false
+          if [ -z ${{env.JFROG_XRAY_WATCHES}} ]; then
+            jf audit --mvn --sast=true --sca=true --secrets=true --licenses=true --validate-secrets=true --vuln=true --format=table --extended-table=true --threads=100 --fail=false
+          else
+            jf audit --mvn --sast=true --sca=true --secrets=true --licenses=true --validate-secrets=true --vuln=true --format=table --extended-table=true --threads=100 --fail=false --watches ${{env.JFROG_XRAY_WATCHES}}
+          fi
 
       - name: "Package: Create MVN Build"
         run: |     # -Djar.finalName=${{env.JAR_FINAL_NAME}} 
