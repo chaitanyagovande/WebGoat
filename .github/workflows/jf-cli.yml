@@ -1,5 +1,9 @@
 name: "JFCLI: JAVA"
-on: push
+on:
+  workflow_dispatch:
+
+  push:
+    branches: ["main"]
 permissions:
   actions: read # for detecting the Github Actions environment.
   id-token: write # for creating OIDC tokens for signing.
