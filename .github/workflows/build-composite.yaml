@@ -1,5 +1,4 @@
-name: Build with Maven
-
+name: Build with Composite Action
 on:
   workflow_dispatch:
     inputs:
@@ -8,20 +7,18 @@ on:
         required: false
         type: string
         default: ''
-
 env:
   JFROG_URL: "https://${{vars.JF_NAME}}.jfrog.io"
   JFROG_USER: "cg-webgoat"
   RESOLVE_REPO: "cg-lab-maven-virtual" 
   DEPLOY_REPO: "cg-lab-maven-virtual" 
   BUILD_NAME: "cg-webgoat"
-
 jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      BUILD_ID: "${{env.BUILD_NAME}}-${{github.run_number}}"
+      BUILD_ID: "cg-webgoat-${{ github.run_number }}"
     steps:
       - uses: actions/checkout@v4
 
