@@ -25,7 +25,7 @@ jobs:
     timeout-minutes: 20
     env:
       BUILD_ID: "cg-webgoat-by-${{ github.run_number }}"
-      JFROG_CLI_LOG_LEVEL: "DEBUG"
+#      JFROG_CLI_LOG_LEVEL: "DEBUG"
     steps:
       - name: "Install prereqs tools"
         run: |
