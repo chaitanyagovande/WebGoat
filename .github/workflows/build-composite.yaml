@@ -15,6 +15,9 @@ env:
   RESOLVE_REPO: "cg-lab-maven-virtual" 
   DEPLOY_REPO: "cg-lab-maven-virtual" 
   BUILD_NAME: "cg-webgoat"
+  JAVA_DISTRIBUTION: 'temurin'
+  JAVA_VERSION: '25'
+  DEFAULT_WORKSPACE: "${{github.workspace}}"
 jobs:
   mvnCompositeAction:
     name: MVN Composite Action
@@ -23,7 +26,16 @@ jobs:
     env:
       BUILD_ID: "cg-webgoat-${{ github.run_number }}"
     steps:
-      - uses: actions/checkout@v4
+      - name: "Clone VCS"
+        uses: actions/checkout@v4 # ref: https://github.com/actions/checkout
+
+      - name: "setUp JDK provider = ${{env.JAVA_DISTRIBUTION}} with ver = ${{env.JAVA_VERSION}}"
+        uses: actions/setup-java@v4   # ref https://github.com/actions/setup-java
+        with:
+          distribution: ${{env.JAVA_DISTRIBUTION}} # temurin
+          java-version: ${{env.JAVA_VERSION}}  # 25
+          cache: 'maven'
+          cache-dependency-path: 'pom.xml'
 
 #      - name: Set artifact version
 #       if: inputs.artifact_version != ''
