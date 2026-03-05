@@ -38,6 +38,16 @@ jobs:
 #      - name: Set artifact version
 #       if: inputs.artifact_version != ''
 #        run: mvn org.codehaus.mojo:versions-maven-plugin:2.16.2:set -DnewVersion=${{ inputs.artifact_version }} -DgenerateBackupPoms=false
+      - name: "Clone VCS"
+        uses: actions/checkout@v4 # ref: https://github.com/actions/checkout
+
+      - name: "setUp JDK provider = ${{env.JAVA_DISTRIBUTION}} with ver = ${{env.JAVA_VERSION}}"
+        uses: actions/setup-java@v4   # ref https://github.com/actions/setup-java
+        with:
+          distribution: ${{env.JAVA_DISTRIBUTION}} # temurin
+          java-version: ${{env.JAVA_VERSION}}  # 25
+          cache: 'maven'
+          cache-dependency-path: 'pom.xml'
 
       - uses: chaitanyagovande/jfrog-shared-actions/maven/setup@main
         with:
@@ -49,16 +59,7 @@ jobs:
           build-name: ${{ env.BUILD_NAME }}
           build-number: ${{ env.BUILD_ID }}
 
-      - name: "Clone VCS"
-        uses: actions/checkout@v4 # ref: https://github.com/actions/checkout
 
-      - name: "setUp JDK provider = ${{env.JAVA_DISTRIBUTION}} with ver = ${{env.JAVA_VERSION}}"
-        uses: actions/setup-java@v4   # ref https://github.com/actions/setup-java
-        with:
-          distribution: ${{env.JAVA_DISTRIBUTION}} # temurin
-          java-version: ${{env.JAVA_VERSION}}  # 25
-          cache: 'maven'
-          cache-dependency-path: 'pom.xml'
 
       - name: "Package: Create MVN Build"
         run: |
