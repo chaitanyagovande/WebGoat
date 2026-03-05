@@ -62,3 +62,4 @@ jobs:
           xray-scan: "true"
 
           xray-fail-on-violation: "false"
+
