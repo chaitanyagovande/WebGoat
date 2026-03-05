@@ -60,14 +60,14 @@ jobs:
 #        if: github.ref == 'refs/heads/master'
 #        run: mvn deploy -DskipTests
 
-      - uses: chaitanyagovande/jfrog-shared-actions/maven/publish@main
-        with:
-          jfrog-url: ${{ env.JFROG_URL }}
-          jfrog-access-token: ${{ secrets.JF_ACCESS_TOKEN }}
-          build-name: ${{ env.BUILD_NAME }}
-          build-number: ${{ github.run_number }}
-          xray-scan: "true"
+#      - uses: chaitanyagovande/jfrog-shared-actions/maven/publish@main
+#        with:
+#          jfrog-url: ${{ env.JFROG_URL }}
+#          jfrog-access-token: ${{ secrets.JF_ACCESS_TOKEN }}
+#          build-name: ${{ env.BUILD_NAME }}
+#          build-number: ${{ github.run_number }}
+#          xray-scan: "true"
 
-          xray-fail-on-violation: "false"
+#          xray-fail-on-violation: "false"
 
 
