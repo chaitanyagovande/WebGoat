@@ -26,16 +26,14 @@ jobs:
     env:
       BUILD_ID: "cg-webgoat-${{ github.run_number }}"
     steps:
-      - name: "Clone VCS"
-        uses: actions/checkout@v4 # ref: https://github.com/actions/checkout
-
-      - name: "setUp JDK provider = ${{env.JAVA_DISTRIBUTION}} with ver = ${{env.JAVA_VERSION}}"
-        uses: actions/setup-java@v4   # ref https://github.com/actions/setup-java
-        with:
-          distribution: ${{env.JAVA_DISTRIBUTION}} # temurin
-          java-version: ${{env.JAVA_VERSION}}  # 25
-          cache: 'maven'
-          cache-dependency-path: 'pom.xml'
+      - name: "Install prereqs tools"
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq yq
+          sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+          sudo chmod +x /usr/local/bin/yq 
+          yq --version
+          jq --version
 
 #      - name: Set artifact version
 #       if: inputs.artifact_version != ''
@@ -50,6 +48,17 @@ jobs:
           resolve-repo: ${{ env.RESOLVE_REPO }}
           build-name: ${{ env.BUILD_NAME }}
           build-number: ${{ env.BUILD_ID }}
+
+      - name: "Clone VCS"
+        uses: actions/checkout@v4 # ref: https://github.com/actions/checkout
+
+      - name: "setUp JDK provider = ${{env.JAVA_DISTRIBUTION}} with ver = ${{env.JAVA_VERSION}}"
+        uses: actions/setup-java@v4   # ref https://github.com/actions/setup-java
+        with:
+          distribution: ${{env.JAVA_DISTRIBUTION}} # temurin
+          java-version: ${{env.JAVA_VERSION}}  # 25
+          cache: 'maven'
+          cache-dependency-path: 'pom.xml'
 
       - name: "Package: Create MVN Build"
         run: |
