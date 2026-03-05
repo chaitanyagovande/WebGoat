@@ -14,7 +14,7 @@ env:
   JFROG_USER: "cg-webgoat"
   RESOLVE_REPO: "cg-lab-maven-virtual" 
   DEPLOY_REPO: "cg-lab-maven-virtual" 
-  BUILD_NAME: "cg-webgoat"
+  BUILD_NAME: "cg-webgoat-by"
   JAVA_DISTRIBUTION: 'temurin'
   JAVA_VERSION: '25'
   DEFAULT_WORKSPACE: "${{github.workspace}}"
@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      BUILD_ID: "cg-webgoat-${{ github.run_number }}"
+      BUILD_ID: "cg-webgoat-by-${{ github.run_number }}"
     steps:
       - name: "Install prereqs tools"
         run: |
@@ -91,7 +91,7 @@ jobs:
           jfrog-oidc-provider-name: ${{vars.JF_OIDC_PROVIDER_NAME}}
           #jfrog-access-token: ${{ secrets.JF_ACCESS_TOKEN }}
           build-name: ${{ env.BUILD_NAME }}
-          build-number: ${{ github.run_number }}
+          build-number: ${{ env.BUILD_ID }}
           xray-scan: "true"
           xray-fail-on-violation: "false"
 
