@@ -60,4 +60,5 @@ jobs:
           build-name: ${{ env.BUILD_NAME }}
           build-number: ${{ github.run_number }}
           xray-scan: "true"
+
           xray-fail-on-violation: "false"
