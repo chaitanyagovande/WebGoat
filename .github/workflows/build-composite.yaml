@@ -59,7 +59,22 @@ jobs:
           build-name: ${{ env.BUILD_NAME }}
           build-number: ${{ env.BUILD_ID }}
 
-
+      - name: "MVN: Summary"
+        run: |
+          echo "# :frog: MVN: Summary :pushpin:" >> $GITHUB_STEP_SUMMARY
+          echo " " >> $GITHUB_STEP_SUMMARY
+          echo " " >> $GITHUB_STEP_SUMMARY
+          echo " - Installed JFrog CLI [$(jf --version)](https://jfrog.com/getcli/) and Java [${{env.JAVA_PROVIDER}}](https://github.com/actions/setup-java) v${{env.JAVA_VERSION}} " >> $GITHUB_STEP_SUMMARY
+          echo "    - $(jf --version) " >> $GITHUB_STEP_SUMMARY
+          echo "    - $(mvn -v) " >> $GITHUB_STEP_SUMMARY
+          echo " - Configured the JFrog Cli and Docker login with SaaS Artifactory OIDC integration  " >> $GITHUB_STEP_SUMMARY
+          echo " " >> $GITHUB_STEP_SUMMARY
+          echo " - Variables info" >> $GITHUB_STEP_SUMMARY
+          echo "    - ID: ${{env.BUILD_ID}} " >> $GITHUB_STEP_SUMMARY
+          echo "    - Build Name: ${{env.BUILD_NAME}} " >> $GITHUB_STEP_SUMMARY
+          echo "    - Maven Repo URL: ${{env.RT_REPO_MVN_VIRTUAL}}" >> $GITHUB_STEP_SUMMARY
+          echo " " >> $GITHUB_STEP_SUMMARY
+          # echo " - Evidence Info: " >> $GITHUB_STEP_SUMMARY
 
       - name: "Package: Create MVN Build"
         run: |
@@ -70,14 +85,14 @@ jobs:
 #        if: github.ref == 'refs/heads/master'
 #        run: mvn deploy -DskipTests
 
-#      - uses: chaitanyagovande/jfrog-shared-actions/maven/publish@main
-#        with:
-#          jfrog-url: ${{ env.JFROG_URL }}
-#          jfrog-access-token: ${{ secrets.JF_ACCESS_TOKEN }}
-#          build-name: ${{ env.BUILD_NAME }}
-#          build-number: ${{ github.run_number }}
-#          xray-scan: "true"
-
-#          xray-fail-on-violation: "false"
+      - uses: chaitanyagovande/jfrog-shared-actions/maven/publish@main
+        with:
+          jfrog-url: ${{ env.JFROG_URL }}
+          jfrog-oidc-provider-name: ${{vars.JF_OIDC_PROVIDER_NAME}}
+          #jfrog-access-token: ${{ secrets.JF_ACCESS_TOKEN }}
+          build-name: ${{ env.BUILD_NAME }}
+          build-number: ${{ github.run_number }}
+          xray-scan: "true"
+          xray-fail-on-violation: "false"
 
 
