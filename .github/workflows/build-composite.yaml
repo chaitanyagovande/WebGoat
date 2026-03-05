@@ -1,12 +1,7 @@
 name: Build with Composite Action
 on:
   workflow_dispatch:
-    inputs:
-      artifact_version:
-        description: 'Maven artifact version to build and push (e.g. 1.0.1, 2.0.0-SNAPSHOT). Leave empty to use version from pom.xml.'
-        required: false
-        type: string
-        default: ''
+
 permissions:
   actions: read # for detecting the Github Actions environment.
   id-token: write # for creating OIDC tokens for signing.
@@ -30,11 +25,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set artifact version
-        if: inputs.artifact_version != ''
-        run: mvn org.codehaus.mojo:versions-maven-plugin:2.16.2:set -DnewVersion=${{ inputs.artifact_version }} -DgenerateBackupPoms=false
+#      - name: Set artifact version
+#       if: inputs.artifact_version != ''
+#        run: mvn org.codehaus.mojo:versions-maven-plugin:2.16.2:set -DnewVersion=${{ inputs.artifact_version }} -DgenerateBackupPoms=false
 
-      - uses: chaitanyagovande/jfrog-maven-actions/maven/setup@main
+      - uses: chaitanyagovande/jfrog-shared-actions/maven/setup@main
         with:
           jfrog-url: ${{ env.JFROG_URL }}
           jfrog-user: ${{ env.JFROG_USER }}
@@ -53,7 +48,7 @@ jobs:
 #        if: github.ref == 'refs/heads/master'
 #        run: mvn deploy -DskipTests
 
-      - uses: chaitanyagovande/jfrog-maven-actions/maven/publish@main
+      - uses: chaitanyagovande/jfrog-shared-actions/maven/publish@main
         with:
           jfrog-url: ${{ env.JFROG_URL }}
           jfrog-access-token: ${{ secrets.JF_ACCESS_TOKEN }}
@@ -62,4 +57,5 @@ jobs:
           xray-scan: "true"
 
           xray-fail-on-violation: "false"
+
 
