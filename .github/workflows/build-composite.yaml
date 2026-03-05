@@ -7,6 +7,13 @@ on:
         required: false
         type: string
         default: ''
+permissions:
+  actions: read # for detecting the Github Actions environment.
+  id-token: write # for creating OIDC tokens for signing.
+  packages: write # for uploading attestations.
+  contents: read
+  security-events: write # Required for uploading code scanning.
+  attestations: write
 env:
   JFROG_URL: "https://${{vars.JF_NAME}}.jfrog.io"
   JFROG_USER: "cg-webgoat"
@@ -14,7 +21,8 @@ env:
   DEPLOY_REPO: "cg-lab-maven-virtual" 
   BUILD_NAME: "cg-webgoat"
 jobs:
-  build:
+  mvnCompositeAction:
+    name: MVN Composite Action
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
