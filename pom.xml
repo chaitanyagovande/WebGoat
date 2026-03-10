@@ -477,10 +477,10 @@
         <executions>
           <execution>
             <id>deploy-thin-only</id>
-            <phase>deploy</phase>
             <goals>
               <goal>deploy-file</goal>
             </goals>
+            <phase>deploy</phase>
             <configuration>
               <skip>false</skip>
               <file>${project.build.directory}/${project.build.finalName}.jar</file>
