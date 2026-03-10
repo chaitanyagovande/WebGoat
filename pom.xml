@@ -467,6 +467,32 @@
           </execution>
         </executions>
       </plugin>
+      <!-- Deploy only the thin JAR; skip default deploy so the -exec fat JAR is not published -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-deploy-plugin</artifactId>
+        <configuration>
+          <skip>true</skip>
+        </configuration>
+        <executions>
+          <execution>
+            <id>deploy-thin-only</id>
+            <phase>deploy</phase>
+            <goals>
+              <goal>deploy-file</goal>
+            </goals>
+            <configuration>
+              <skip>false</skip>
+              <file>${project.build.directory}/${project.build.finalName}.jar</file>
+              <pomFile>${project.basedir}/pom.xml</pomFile>
+              <repositoryId>central</repositoryId>
+              <url>${project.distributionManagement.repository.url}</url>
+              <snapshotRepositoryId>snapshots</snapshotRepositoryId>
+              <altSnapshotDeploymentRepository>snapshots::default::${project.distributionManagement.snapshotRepository.url}</altSnapshotDeploymentRepository>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
