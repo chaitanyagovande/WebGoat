@@ -446,6 +446,8 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
         <configuration>
+          <!-- Attach fat JAR as *-exec.jar so the main artifact stays thin (no deps) for publishing -->
+          <classifier>exec</classifier>
           <excludeDevtools>true</excludeDevtools>
           <executable>true</executable>
           <mainClass>org.owasp.webgoat.server.StartWebGoat</mainClass>
@@ -740,7 +742,7 @@
                     <argument>java.base/java.io=ALL-UNNAMED</argument>
                     <argument>--add-opens</argument>
                     <argument>java.base/java.util=ALL-UNNAMED</argument>
-                    <argument>${project.build.directory}/webgoat-${project.version}.jar</argument>
+                    <argument>${project.build.directory}/${project.build.finalName}-exec.jar</argument>
                   </arguments>
                   <waitForInterrupt>false</waitForInterrupt>
                   <waitAfterLaunch>${waittimeForServerStart}</waitAfterLaunch>
