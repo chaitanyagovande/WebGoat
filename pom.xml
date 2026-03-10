@@ -467,6 +467,28 @@
           </execution>
         </executions>
       </plugin>
+      <!-- Install only the thin JAR (and POM); skip default install so the -exec fat JAR is not installed -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-install-plugin</artifactId>
+        <configuration>
+          <skip>true</skip>
+        </configuration>
+        <executions>
+          <execution>
+            <id>install-thin-only</id>
+            <goals>
+              <goal>install-file</goal>
+            </goals>
+            <phase>install</phase>
+            <configuration>
+              <skip>false</skip>
+              <file>${project.build.directory}/${project.build.finalName}.jar</file>
+              <pomFile>${project.basedir}/pom.xml</pomFile>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <!-- Deploy only the thin JAR; skip default deploy so the -exec fat JAR is not published -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
