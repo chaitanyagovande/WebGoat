@@ -9,7 +9,7 @@
   </parent>
 
   <groupId>org.owasp.webgoat</groupId>
-  <artifactId>webgoat</artifactId>
+  <artifactId>webgoat-nodeps</artifactId>
   <version>2025.4-SNAPSHOT</version>
   <packaging>jar</packaging>
 
@@ -446,6 +446,7 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
         <configuration>
+        <skip>true</skip>
           <excludeDevtools>true</excludeDevtools>
           <executable>true</executable>
           <mainClass>org.owasp.webgoat.server.StartWebGoat</mainClass>
