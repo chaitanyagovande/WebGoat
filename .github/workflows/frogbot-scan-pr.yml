@@ -19,9 +19,9 @@ permissions:
   pull-requests: write
   contents: read
   id-token: write # for creating OIDC tokens for signing.
-  security-events: write
-  packages: write # for uploading attestations.
-  actions: read # for detecting the Github Actions environment.
+#  security-events: write
+#  packages: write # for uploading attestations.
+#  actions: read # for detecting the Github Actions environment.
 jobs:
   scan-pull-request:
     runs-on: ubuntu-latest
