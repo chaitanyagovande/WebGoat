@@ -1,0 +1,52 @@
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+# Frogbot Scan and Fix does the following:
+# Automatically creates pull requests with fixes for vulnerable project dependencies.
+# Uses JFrog Xray to scan the project.
+# Read more about Frogbot here - https://docs.jfrog-applications.jfrog.io/jfrog-applications/frogbot
+
+# Some projects require creating a frogbot-config.yml file. Read more about it here - https://docs.jfrog-applications.jfrog.io/jfrog-applications/frogbot/setup-frogbot/frogbot-configuration
+
+name: "Frogbot Scan and Fix"
+on:
+  push:
+    branches: [ "voy-demo" ]
+permissions:
+  contents: write
+  id-token: write # for creating OIDC tokens for signing.
+  pull-requests: write
+  security-events: write
+  packages: write # for uploading attestations.
+  actions: read # for detecting the Github Actions environment.
+jobs:
+  Frogbot-Create-fix-pull-requests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Clone VCS"
+        uses: actions/checkout@v4
+      - name: "Run Frogbot Scan"
+        uses: jfrog/frogbot@v2
+        id: frogbot
+        continue-on-error: true
+        env:
+            JF_URL: ${{ vars.JF_URL }}
+            JF_GIT_TOKEN: ${{ secrets.JF_GITHUB_TOKEN }}
+            JF_INCLUDE_ALL_VULNERABILITIES: "true"
+            JFROG_CLI_LOG_LEVEL: ${{ vars.JF_LOG_LEVEL }}
+            JF_FAIL: "TRUE"   # Let it fail on findings
+        with:
+            oidc-provider-name: ${{ vars.JF_OIDC_PROVIDER_NAME }}
+       # A custom step to write to the summary
+      - name: Write scan result to summary
+        if: always()
+        run: |
+          if [ "${{ steps.frogbot.outcome }}" == "failure" ]; then
+            echo "## 🐸 Frogbot Security Scan: Issues Found ❌" >> $GITHUB_STEP_SUMMARY
+            echo "Frogbot detected vulnerabilities or violations. Check the PR comments or Code Scanning alerts for details." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## 🐸 Frogbot Security Scan: Clean ✅" >> $GITHUB_STEP_SUMMARY
+            echo "No new security issues were detected." >> $GITHUB_STEP_SUMMARY
+          fi
+
