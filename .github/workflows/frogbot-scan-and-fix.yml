@@ -37,6 +37,7 @@ jobs:
             JFROG_CLI_LOG_LEVEL: ${{ vars.JF_LOG_LEVEL }}
             JF_GIT_AGGREGATE_FIXES: "true"
             JF_FAIL: "true"   # Let it fail on findings
+            JF_WATCHES: "CG_SEC-IDE-bl"
         with:
             oidc-provider-name: ${{ vars.JF_OIDC_PROVIDER_NAME }}
        # A custom step to write to the summary
