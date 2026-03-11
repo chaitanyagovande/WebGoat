@@ -35,7 +35,8 @@ jobs:
             JF_GIT_TOKEN: ${{ secrets.JF_GITHUB_TOKEN }}
             JF_INCLUDE_ALL_VULNERABILITIES: "true"
             JFROG_CLI_LOG_LEVEL: ${{ vars.JF_LOG_LEVEL }}
-#            JF_FAIL: true   # Let it fail on findings
+            JF_GIT_AGGREGATE_FIXES: "true"
+            JF_FAIL: "true"   # Let it fail on findings
         with:
             oidc-provider-name: ${{ vars.JF_OIDC_PROVIDER_NAME }}
        # A custom step to write to the summary
