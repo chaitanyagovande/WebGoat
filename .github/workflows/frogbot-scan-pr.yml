@@ -12,6 +12,9 @@
 name: "Frogbot Scan Pull Request"
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - voy-demo
   pull_request_target:
     types: [ opened, synchronize, reopened]
     branches: ["voy-demo"]
