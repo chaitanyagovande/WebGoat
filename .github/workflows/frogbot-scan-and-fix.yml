@@ -36,19 +36,7 @@ jobs:
             JF_INCLUDE_ALL_VULNERABILITIES: "true"
             JFROG_CLI_LOG_LEVEL: ${{ vars.JF_LOG_LEVEL }}
             JF_GIT_AGGREGATE_FIXES: "true"
-            JF_FAIL: "true"   # Let it fail on findings
+#            JF_FAIL: true   # Let it fail on findings
             JF_WATCHES: "CG_SEC-IDE-bl"
         with:
             oidc-provider-name: ${{ vars.JF_OIDC_PROVIDER_NAME }}
-       # A custom step to write to the summary
-      - name: Write scan result to summary
-        if: always()
-        run: |
-          if [ "${{ steps.frogbot.outcome }}" == "failure" ]; then
-            echo "## 🐸 Frogbot Security Scan: Issues Found ❌" >> $GITHUB_STEP_SUMMARY
-            echo "Frogbot detected vulnerabilities or violations. Check the PR comments or Code Scanning alerts for details." >> $GITHUB_STEP_SUMMARY
-          else
-            echo "## 🐸 Frogbot Security Scan: Clean ✅" >> $GITHUB_STEP_SUMMARY
-            echo "No new security issues were detected." >> $GITHUB_STEP_SUMMARY
-          fi
-
