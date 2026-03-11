@@ -29,7 +29,7 @@ jobs:
       - name: "Run Frogbot Scan"
         uses: jfrog/frogbot@v2
         id: frogbot
-        continue-on-error: true
+#        continue-on-error: true
         env:
             JF_URL: ${{ vars.JF_URL }}
             JF_GIT_TOKEN: ${{ secrets.JF_GITHUB_TOKEN }}
