@@ -32,6 +32,11 @@ jobs:
     steps:
       - name: "Clone VCS"
         uses: actions/checkout@v4
+        with:
+          # This pulls the code from the PR, not the 'voy-demo' branch
+          ref: ${{ github.event.pull_request.head.sha }}
+          # This ensures we are checking out the fork's code
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
       - name: "Run Frogbot PR Scan"
         uses: jfrog/frogbot@v2
         id: frogbot
