@@ -11,6 +11,7 @@
 # Test1
 name: "Frogbot Scan Pull Request"
 on:
+  workflow_dispatch:
   pull_request_target:
     types: [ opened, synchronize, reopened]
 #    branches:
