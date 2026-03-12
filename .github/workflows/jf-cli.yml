@@ -177,8 +177,8 @@ jobs:
       #   continue-on-error: true
       #   run: jf rt bad ${{env.BUILD_NAME}} ${{env.BUILD_ID}}
       
-      - name: "BuildInfo: Add VCS info"
-        run: jf rt bag ${{env.BUILD_NAME}} ${{env.BUILD_ID}} 
+     # - name: "BuildInfo: Add VCS info"
+     #   run: jf rt bag ${{env.BUILD_NAME}} ${{env.BUILD_ID}} 
 
       - name: "BuildInfo: Build Publish"
         run: jf rt bp ${{env.BUILD_NAME}} ${{env.BUILD_ID}} --detailed-summary=true
