@@ -1,0 +1,60 @@
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+# Frogbot Scan Pull Request does the following:
+# Automatically scans new pull requests for security vulnerabilities.
+# Uses JFrog Xray to scan the project.
+# Read more about Frogbot here - https://docs.jfrog-applications.jfrog.io/jfrog-applications/frogbot
+
+# Some projects require creating a frogbot-config.yml file. Read more about it here - https://docs.jfrog-applications.jfrog.io/jfrog-applications/frogbot/setup-frogbot/frogbot-configuration
+# Test1
+name: "Frogbot Scan Pull Request"
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - voy-demo
+  pull_request_target:
+    types: [ opened, synchronize, reopened]
+    branches: ["voy-demo"]
+permissions:
+  pull-requests: write
+  contents: read
+  id-token: write # for creating OIDC tokens for signing.
+#  security-events: write
+#  packages: write # for uploading attestations.
+#  actions: read # for detecting the Github Actions environment.
+jobs:
+  scan-pull-request:
+    runs-on: ubuntu-latest
+    # A pull request needs to be approved, before Frogbot scans it. Any GitHub user who is associated with the
+    # "frogbot" GitHub environment can approve the pull request to be scanned.
+    # Read more here (Install Frogbot Using GitHub Actions): https://docs.jfrog-applications.jfrog.io/jfrog-applications/frogbot/setup-frogbot/setup-frogbot-using-github-actions
+    environment: frogbot
+    steps:
+      - name: "Clone VCS"
+        uses: actions/checkout@v4
+        with:
+          # This pulls the code from the PR, not the 'voy-demo' branch
+          ref: ${{ github.event.pull_request.head.sha }}
+          # This ensures we are checking out the fork's code
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+      - name: "Run Frogbot PR Scan"
+        uses: jfrog/frogbot@v2
+        id: frogbot
+#        continue-on-error: true
+        env:
+            JF_URL: ${{ vars.JF_URL }}
+            JF_GIT_TOKEN: ${{ secrets.JF_GITHUB_TOKEN }}
+            JF_INCLUDE_ALL_VULNERABILITIES: "true"
+            JFROG_CLI_LOG_LEVEL: ${{ vars.JF_LOG_LEVEL }}
+            JF_GIT_AGGREGATE_FIXES: "true"
+#            JF_FAIL: true   # Let it fail on findings
+            JF_WATCHES: "CG_SEC-IDE-bl"
+        with:
+            oidc-provider-name: ${{ vars.JF_OIDC_PROVIDER_NAME }}
+
+          # dependencies from a virtual repository in Artifactory, set the name of of the repository. There's no
+          # need to set this value, if it is set in the frogbot-config.yml file.
+          # JF_DEPS_REPO: ""
