@@ -170,8 +170,8 @@ jobs:
           jf scan . --format=table --extended-table=true --threads=100 --fail=false
 
       # Build Info
-      - name: "BuildInfo: Collect env"
-        run: jf rt bce ${{env.BUILD_NAME}} ${{env.BUILD_ID}} 
+    #  - name: "BuildInfo: Collect env"
+    #    run: jf rt bce ${{env.BUILD_NAME}} ${{env.BUILD_ID}} 
 
       # - name: "BuildInfo: Add Dependencies"
       #   continue-on-error: true
