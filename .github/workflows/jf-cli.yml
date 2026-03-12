@@ -37,7 +37,7 @@ jobs:
     name: "MVN Package"
     env: 
       BUILD_ID: "cg-webgoat-${{github.run_number}}"
-      RT_REPO_MVN_VIRTUAL: "cg-lab-maven-virtual" #"cg-lab-maven-virtual"  
+      RT_REPO_MVN_VIRTUAL: "cg-lab-maven-voy-virtual" #"cg-lab-maven-virtual"  
       #RT_REPO_MVN_DEFAULT_LOCAL: "springpetclinic-mvn-snapshot-local"  # springpetclinic-mvn-dev-local, springpetclinic-mvn-qa-local, springpetclinic-mvn-prod-local
       #RT_REPO_DEV_LOCAL: "springpetclinic-mvn-dev-local"
       #RT_REPO_QA_LOCAL: "springpetclinic-mvn-qa-local"
