@@ -18,7 +18,7 @@ permissions:
   attestations: write
 env:
   JF_RT_URL: "https://${{vars.JF_NAME}}.jfrog.io"
-  BUILD_NAME: "cg-webgoat" # spring-petclinic-3.5.0-SNAPSHOT.jar
+  BUILD_NAME: "cg-webgoat-voy" # spring-petclinic-3.5.0-SNAPSHOT.jar
   #APP_TRUST_BUILD_NAME: "AppTrust-spring-petclinic"
   JFROG_XRAY_WATCHES: ${{ github.event.inputs.xrayWatches}}
   JOB_SUMMARY: false
