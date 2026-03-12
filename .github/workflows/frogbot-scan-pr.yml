@@ -8,7 +8,7 @@
 # Read more about Frogbot here - https://docs.jfrog-applications.jfrog.io/jfrog-applications/frogbot
 
 # Some projects require creating a frogbot-config.yml file. Read more about it here - https://docs.jfrog-applications.jfrog.io/jfrog-applications/frogbot/setup-frogbot/frogbot-configuration
-# Test1
+# Test3
 name: "Frogbot Scan Pull Request"
 on:
   workflow_dispatch:
