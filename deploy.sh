@@ -15,10 +15,10 @@ callBase()
     #cp -f ../../jfrog-maven-hello-world/pom.xml .
     #cp -Rf ../../jfrog-maven-hello-world/.jfrog .
     #jf c use pscloud-useast
-    jf mvn install -X --build-name $BUILDNAME --build-number $TIMESTAMP --project $PROJECTKEY
+    jf mvn install -Pfat -X --build-name $BUILDNAME --build-number $TIMESTAMP --project $PROJECTKEY
     #jf rt bce $BUILDNAME $TIMESTAMP --project $PROJECTKEY
     #jf rt bag $BUILDNAME $TIMESTAMP --project $PROJECTKEY
-    jf mvn deploy --build-name $BUILDNAME --build-number $TIMESTAMP --project $PROJECTKEY
+    jf mvn deploy -Pfat --build-name $BUILDNAME --build-number $TIMESTAMP --project $PROJECTKEY
     #jf rt bp $BUILDNAME $TIMESTAMP --project $PROJECTKEY
 }
 

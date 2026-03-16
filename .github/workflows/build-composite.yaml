@@ -80,7 +80,7 @@ jobs:
       # We deploy only the thin JAR via Maven deploy phase (maven-deploy-plugin deploy-file).
       - name: "Package: Create MVN Build"
         run: |
-          jf mvn clean deploy -DskipTests -Dartifactory.publish.artifacts=false -f pom.xml --build-name ${{env.BUILD_NAME}} --build-number ${{env.BUILD_ID}}
+          jf mvn clean install -Pfat -DskipTests -Dartifactory.publish.artifacts=false -f pom.xml --build-name ${{env.BUILD_NAME}} --build-number ${{env.BUILD_ID}}
 
       
 #      - name: Deploy to Artifactory
