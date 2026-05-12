@@ -1,0 +1,20 @@
+# ---------------------------------------------------------------------------
+# Frogbot configuration – MAVEN scope.
+#
+# Activated by `.github/workflows/frogbot-scan-pr.yml`, which copies this
+# file to `.frogbot/frogbot-config.yml` before the Frogbot step. Restricting
+# `scan.technologies` to `maven` keeps the run focused on `pom.xml` and
+# leaves Gradle scanning to the sibling workflow `frogbot-scan-pr-gradle.yml`.
+#
+# Reference: https://docs.jfrog.com/security/docs/the-frogbot-config-yml-file-structure
+# ---------------------------------------------------------------------------
+- params:
+    git:
+      repoName: "WebGoat"
+      branches:
+        - "voy-demo"
+    scan:
+      technologies:
+        - maven
+      failOnSecurityIssues: false
+      vulnerableDependencies: true

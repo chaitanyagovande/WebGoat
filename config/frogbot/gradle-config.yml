@@ -1,0 +1,21 @@
+# ---------------------------------------------------------------------------
+# Frogbot configuration – GRADLE scope.
+#
+# Activated by `.github/workflows/frogbot-scan-pr-gradle.yml`, which copies
+# this file to `.frogbot/frogbot-config.yml` before the Frogbot step.
+# Restricting `scan.technologies` to `gradle` keeps the run focused on the
+# Gradle dependency tree – `pom.xml` is ignored without needing a path
+# exclusion.
+#
+# Reference: https://docs.jfrog.com/security/docs/the-frogbot-config-yml-file-structure
+# ---------------------------------------------------------------------------
+- params:
+    git:
+      repoName: "WebGoat"
+      branches:
+        - "gradle-support"
+    scan:
+      technologies:
+        - gradle
+      failOnSecurityIssues: false
+      vulnerableDependencies: true
