@@ -1,0 +1,523 @@
+// ---------------------------------------------------------------------------
+// WebGoat – Gradle build (parity with pom.xml). See README.md for usage.
+// ---------------------------------------------------------------------------
+
+import java.time.Duration
+
+plugins {
+    id 'java'
+    id 'jacoco'
+    id 'checkstyle'
+    id 'maven-publish'
+    id 'org.springframework.boot'            version '3.5.6'
+    id 'io.spring.dependency-management'     version '1.1.7'
+    id 'com.diffplug.spotless'               version '7.0.2'
+    id 'org.owasp.dependencycheck'           version '12.1.0'
+    id 'com.jfrog.artifactory'               version '5.2.5'
+}
+
+description = 'WebGoat, a deliberately insecure Web Application'
+
+// ---------------------------------------------------------------------------
+// Versions (mirror of <properties> in pom.xml)
+// ---------------------------------------------------------------------------
+ext {
+    asciidoctorjVersion       = '3.0.0'
+    bootstrapVersion          = '5.3.5'
+    cglibVersion              = '3.3.0'
+    commonsCollectionsVersion = '3.2.1'
+    commonsCompressVersion    = '1.28.0'
+    commonsIoVersion          = '2.20.0'
+    commonsLang3Version       = '3.14.0'
+    commonsTextVersion        = '1.14.0'
+    guavaVersion              = '33.5.0-jre'
+    jaxbVersion               = '2.3.1'
+    jjwtVersion               = '0.9.1'
+    jose4jVersion             = '0.9.3'
+    jqueryVersion             = '3.7.1'
+    jsoupVersion              = '1.19.1'
+    lombokVersion             = '1.18.42'
+    thymeleafVersion          = '3.1.2.RELEASE'
+    webdriverVersion          = '6.3.2'
+    webjarsLocatorCoreVersion = '0.59'
+    wiremockVersion           = '3.13.1'
+    xmlResolverVersion        = '1.2'
+    xstreamVersion            = '1.4.5'
+    zxcvbnVersion             = '1.9.0'
+
+    webgoatContext            = project.findProperty('webgoat.context') ?: '/WebGoat'
+    webwolfContext            = project.findProperty('webwolf.context') ?: '/WebWolf'
+    webgoatSslEnabled         = project.findProperty('webgoat.sslenabled') ?: 'false'
+    waittimeForServerStart    = (project.findProperty('waittimeForServerStart') ?: '60') as Integer
+}
+
+// ---------------------------------------------------------------------------
+// Java toolchain & compile options
+// ---------------------------------------------------------------------------
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+    withJavadocJar()
+    withSourcesJar()
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.compilerArgs += '-parameters'
+}
+
+// ---------------------------------------------------------------------------
+// Repositories are declared centrally in settings.gradle
+// (dependencyResolutionManagement). Do not add a project-level
+// `repositories { ... }` block here – RepositoriesMode.FAIL_ON_PROJECT_REPOS
+// will break the build if one is added.
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Source sets – integration tests live under src/it/java (parity with the
+// build-helper-maven-plugin add-test-source execution)
+// ---------------------------------------------------------------------------
+sourceSets {
+    integrationTest {
+        java {
+            srcDir 'src/it/java'
+        }
+        resources {
+            srcDir 'src/it/resources'
+        }
+        compileClasspath += sourceSets.main.output + sourceSets.test.output
+        runtimeClasspath += sourceSets.main.output + sourceSets.test.output
+    }
+}
+
+configurations {
+    integrationTestImplementation.extendsFrom testImplementation
+    integrationTestRuntimeOnly.extendsFrom testRuntimeOnly
+}
+
+// Ban log4j-core globally (mirror of maven-enforcer-plugin rule)
+configurations.configureEach {
+    exclude group: 'org.apache.logging.log4j', module: 'log4j-core'
+}
+
+// ---------------------------------------------------------------------------
+// Dependency management – pull the Spring Boot BOM (replacement for the
+// spring-boot-starter-parent), plus our own version pins.
+// ---------------------------------------------------------------------------
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.boot:spring-boot-dependencies:3.5.6"
+    }
+    dependencies {
+        dependency "org.apache.commons:commons-exec:1.5.0"
+        dependency "org.asciidoctor:asciidoctorj:${asciidoctorjVersion}"
+        dependency "org.jsoup:jsoup:${jsoupVersion}"
+        dependency "com.nulab-inc:zxcvbn:${zxcvbnVersion}"
+        dependency "com.thoughtworks.xstream:xstream:${xstreamVersion}"
+        dependency "cglib:cglib-nodep:${cglibVersion}"
+        dependency "xml-resolver:xml-resolver:${xmlResolverVersion}"
+        dependency "io.jsonwebtoken:jjwt:${jjwtVersion}"
+        dependency "com.auth0:jwks-rsa:0.23.0"
+        dependency "com.auth0:java-jwt:4.5.0"
+        dependency "com.google.guava:guava:${guavaVersion}"
+        dependency "commons-io:commons-io:${commonsIoVersion}"
+        dependency "org.apache.commons:commons-text:${commonsTextVersion}"
+        dependency "org.bitbucket.b_c:jose4j:${jose4jVersion}"
+        dependency "org.webjars:bootstrap:${bootstrapVersion}"
+        dependency "org.webjars:jquery:${jqueryVersion}"
+        dependency "org.webjars:webjars-locator-core:${webjarsLocatorCoreVersion}"
+        dependency "org.wiremock:wiremock-standalone:${wiremockVersion}"
+        dependency "io.github.bonigarcia:webdrivermanager:${webdriverVersion}"
+        dependency "org.apache.commons:commons-compress:${commonsCompressVersion}"
+        dependency "org.jruby:jruby:10.0.0.1"
+        dependency "com.microsoft.playwright:playwright:1.55.0"
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Dependencies (mirror of the <dependencies> block in pom.xml)
+// ---------------------------------------------------------------------------
+dependencies {
+    compileOnly      "org.projectlombok:lombok:${lombokVersion}"
+    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+    testCompileOnly  "org.projectlombok:lombok:${lombokVersion}"
+    testAnnotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+
+    implementation 'org.apache.commons:commons-exec'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation "javax.xml.bind:jaxb-api:${jaxbVersion}"
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-database-hsqldb'
+    implementation 'org.asciidoctor:asciidoctorj'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+    implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
+    implementation 'jakarta.servlet:jakarta.servlet-api'
+    implementation 'org.hsqldb:hsqldb:2.7.4'
+    implementation 'org.jsoup:jsoup'
+    implementation 'com.nulab-inc:zxcvbn'
+    implementation 'com.thoughtworks.xstream:xstream'
+    implementation 'cglib:cglib-nodep'
+    implementation 'xml-resolver:xml-resolver'
+    implementation 'io.jsonwebtoken:jjwt'
+    implementation 'com.auth0:jwks-rsa'
+    implementation 'com.auth0:java-jwt'
+    implementation 'com.google.guava:guava'
+    implementation 'commons-io:commons-io'
+    implementation 'org.apache.commons:commons-lang3'
+    implementation 'org.apache.commons:commons-text'
+    implementation 'org.bitbucket.b_c:jose4j'
+    implementation 'org.webjars:bootstrap'
+    implementation 'org.webjars:jquery'
+    implementation 'org.webjars:webjars-locator-core'
+    implementation 'jakarta.xml.bind:jakarta.xml.bind-api'
+    runtimeOnly    'com.sun.xml.bind:jaxb-impl'
+    runtimeOnly    'org.springframework.boot:spring-boot-properties-migrator'
+
+    implementation 'org.wiremock:wiremock-standalone'
+
+    testImplementation 'com.github.terma:javaniotcpproxy:1.6'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'io.rest-assured:rest-assured'
+    testImplementation 'com.microsoft.playwright:playwright'
+}
+
+// ---------------------------------------------------------------------------
+// Spring Boot executable jar – mirrors spring-boot-maven-plugin config:
+//   excludeDevtools=true, executable=true, mainClass, requiresUnpack=asciidoctorj
+// ---------------------------------------------------------------------------
+springBoot {
+    mainClass = 'org.owasp.webgoat.server.StartWebGoat'
+}
+
+bootJar {
+    archiveBaseName = 'webgoat'
+    launchScript()
+    requiresUnpack '**/asciidoctorj-*.jar'
+    // Match the Maven artifact name target/webgoat-<version>.jar (no classifier)
+    archiveClassifier = ''
+}
+
+// Exclude devtools from the bootJar runtime classpath (parity with excludeDevtools=true)
+configurations.runtimeClasspath {
+    exclude group: 'org.springframework.boot', module: 'spring-boot-devtools'
+}
+
+// We publish the boot-repackaged jar, so the plain jar is not needed.
+jar {
+    enabled = false
+}
+
+// ---------------------------------------------------------------------------
+// Unit tests (mirror of maven-surefire-plugin configuration)
+// ---------------------------------------------------------------------------
+test {
+    useJUnitPlatform()
+    systemProperty 'logback.configurationFile', "${projectDir}/src/test/resources/logback-test.xml"
+    jvmArgs(
+        '--enable-native-access=ALL-UNNAMED',
+        '--add-opens', 'java.base/sun.nio.ch=ALL-UNNAMED',
+        '--add-opens', 'java.base/java.io=ALL-UNNAMED',
+        '--add-opens', 'java.base/java.util=ALL-UNNAMED',
+        '--add-opens', 'java.base/java.lang.reflect=ALL-UNNAMED',
+        '--add-opens', 'java.base/java.text=ALL-UNNAMED',
+        '--add-opens', 'java.desktop/java.awt.font=ALL-UNNAMED'
+    )
+    exclude '**/*IntegrationTest.class', '**/*UITest.class'
+    timeout = Duration.ofMinutes(10)
+}
+
+// ---------------------------------------------------------------------------
+// Integration tests (mirror of maven-failsafe-plugin + process-exec-maven-plugin)
+// Lifecycle: bootJar -> startWebGoat -> integrationTest -> stopWebGoat
+// ---------------------------------------------------------------------------
+
+// Ports are allocated lazily by startWebGoat (matching reserve-network-port).
+ext.webgoatPort = null
+ext.webwolfPort = null
+ext.webgoatProcess = null
+
+tasks.register('startWebGoat') {
+    description = 'Allocates free ports, starts the WebGoat boot jar, waits for the login page to come up.'
+    group = 'verification'
+    dependsOn bootJar
+
+    doLast {
+        ext.webgoatPort = new ServerSocket(0).withCloseable { it.localPort }
+        ext.webwolfPort = new ServerSocket(0).withCloseable { it.localPort }
+        rootProject.ext.webgoatPort = ext.webgoatPort
+        rootProject.ext.webwolfPort = ext.webwolfPort
+
+        def jarFile = bootJar.archiveFile.get().asFile
+        def workDir = layout.buildDirectory.get().asFile
+        def javaHome = System.getenv('JAVA_HOME') ?: System.getProperty('java.home')
+        def javaBin  = "${javaHome}/bin/java"
+        def tmp      = System.getProperty('java.io.tmpdir')
+
+        def cmd = [
+            javaBin,
+            '-Dlogging.pattern.console=',
+            "-Dwebgoat.server.directory=${tmp}/webgoat_${ext.webgoatPort}",
+            "-Dwebgoat.user.directory=${tmp}/webgoat_${ext.webgoatPort}",
+            '-Dspring.main.banner-mode=off',
+            '--enable-native-access=ALL-UNNAMED',
+            '--add-opens', 'java.base/java.lang=ALL-UNNAMED',
+            '--add-opens', 'java.base/java.util=ALL-UNNAMED',
+            '--add-opens', 'java.base/java.lang.reflect=ALL-UNNAMED',
+            '--add-opens', 'java.desktop/java.beans=ALL-UNNAMED',
+            '--add-opens', 'java.base/sun.nio.ch=ALL-UNNAMED',
+            '--add-opens', 'java.base/java.io=ALL-UNNAMED',
+            '-jar', jarFile.absolutePath
+        ]
+
+        logger.lifecycle("Starting WebGoat on port ${ext.webgoatPort} (WebWolf ${ext.webwolfPort})")
+        def builder = new ProcessBuilder(cmd as List<String>)
+            .directory(workDir)
+            .redirectErrorStream(true)
+            .redirectOutput(new File(workDir, "webgoat-${ext.webgoatPort}.log"))
+        builder.environment().putAll([
+            'WEBGOAT_SSLENABLED': "${webgoatSslEnabled}",
+            'WEBGOAT_HOST'      : '127.0.0.1',
+            'WEBGOAT_PORT'      : "${ext.webgoatPort}",
+            'WEBGOAT_CONTEXT'   : "${webgoatContext}",
+            'WEBWOLF_HOST'      : '127.0.0.1',
+            'WEBWOLF_PORT'      : "${ext.webwolfPort}",
+            'WEBWOLF_CONTEXT'   : "${webwolfContext}"
+        ])
+        def process = builder.start()
+        rootProject.ext.webgoatProcess = process
+
+        def healthCheckUrl = "http://127.0.0.1:${ext.webgoatPort}${webgoatContext}/login"
+        def deadline = System.currentTimeMillis() + (waittimeForServerStart * 1000L)
+        def ready = false
+        while (System.currentTimeMillis() < deadline) {
+            if (!process.isAlive()) {
+                throw new GradleException("WebGoat process exited prematurely (code=${process.exitValue()}); see ${workDir}/webgoat-${ext.webgoatPort}.log")
+            }
+            try {
+                def conn = new URL(healthCheckUrl).openConnection()
+                conn.connectTimeout = 1000
+                conn.readTimeout = 1000
+                def code = conn.responseCode
+                if (code in 200..399) {
+                    ready = true
+                    break
+                }
+            } catch (IOException ignored) {
+                // server not up yet
+            }
+            Thread.sleep(1000)
+        }
+        if (!ready) {
+            process.destroyForcibly()
+            throw new GradleException("WebGoat did not become healthy at ${healthCheckUrl} within ${waittimeForServerStart}s")
+        }
+        logger.lifecycle("WebGoat is healthy at ${healthCheckUrl}")
+    }
+}
+
+tasks.register('stopWebGoat') {
+    description = 'Stops the WebGoat process started by startWebGoat.'
+    group = 'verification'
+    doLast {
+        def proc = rootProject.ext.has('webgoatProcess') ? rootProject.ext.webgoatProcess : null
+        if (proc != null && proc.isAlive()) {
+            logger.lifecycle('Stopping WebGoat process')
+            proc.destroy()
+            if (!proc.waitFor(15, java.util.concurrent.TimeUnit.SECONDS)) {
+                proc.destroyForcibly()
+            }
+        }
+    }
+}
+
+tasks.register('integrationTest', Test) {
+    description = 'Runs integration & playwright tests against a live WebGoat instance.'
+    group = 'verification'
+
+    testClassesDirs = sourceSets.integrationTest.output.classesDirs
+    classpath = sourceSets.integrationTest.runtimeClasspath
+
+    useJUnitPlatform()
+    shouldRunAfter test
+    dependsOn startWebGoat
+    finalizedBy stopWebGoat
+
+    jvmArgs '-Xmx512m'
+    systemProperty 'logback.configurationFile', "${projectDir}/src/test/resources/logback-test.xml"
+
+    // Failsafe scans by FQCN. Translate the Maven includes to Gradle test filters.
+    include 'org/owasp/webgoat/integration/**/*Test.class'
+    include 'org/owasp/webgoat/playwright/**/*Test.class'
+
+    doFirst {
+        environment 'WEBGOAT_SSLENABLED', "${webgoatSslEnabled}"
+        environment 'WEBGOAT_HOST', '127.0.0.1'
+        environment 'WEBGOAT_PORT', "${rootProject.ext.webgoatPort}"
+        environment 'WEBGOAT_CONTEXT', "${webgoatContext}"
+        environment 'WEBWOLF_HOST', '127.0.0.1'
+        environment 'WEBWOLF_PORT', "${rootProject.ext.webwolfPort}"
+        environment 'WEBWOLF_CONTEXT', "${webwolfContext}"
+    }
+}
+
+// `gradle check` should run both unit and integration tests (parity with `mvn verify`)
+tasks.named('check') {
+    dependsOn tasks.named('integrationTest')
+}
+
+// ---------------------------------------------------------------------------
+// Checkstyle (mirror of maven-checkstyle-plugin)
+// ---------------------------------------------------------------------------
+checkstyle {
+    toolVersion = '10.18.2'
+    configFile = file('config/checkstyle/checkstyle.xml')
+    configProperties = [
+        'checkstyle.suppressions.file': file('config/checkstyle/suppressions.xml').absolutePath
+    ]
+    showViolations = true
+    ignoreFailures = false
+}
+
+// ---------------------------------------------------------------------------
+// Spotless (mirror of spotless-maven-plugin – java, gitignore, markdown blocks)
+// The Maven-only <pom> (sortPom) block has no straightforward Gradle equivalent;
+// Maven remains the source of truth for pom.xml formatting (see README).
+// ---------------------------------------------------------------------------
+spotless {
+    java {
+        target 'src/main/java/**/*.java', 'src/test/java/**/*.java', 'src/it/java/**/*.java'
+        googleJavaFormat('1.22.0').reflowLongStrings()
+        licenseHeaderFile(file('config/license-headers/java'), '(package|import)')
+        removeUnusedImports()
+    }
+    format 'gitignore', {
+        target '.gitignore'
+        trimTrailingWhitespace()
+        endWithNewline()
+        indentWithTabs(4)
+    }
+    format 'markdown', {
+        target '**/*.md'
+        targetExclude 'build/**', '.gradle/**', 'target/**'
+    }
+}
+
+// ---------------------------------------------------------------------------
+// JaCoCo (mirror of the `coverage` Maven profile – gated by -Pcoverage)
+// ---------------------------------------------------------------------------
+jacoco {
+    toolVersion = '0.8.12'
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        html.required = true
+        xml.required  = true
+    }
+}
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            element = 'BUNDLE'
+            limit {
+                counter = 'CLASS'
+                value   = 'COVEREDRATIO'
+                minimum = 0.6
+            }
+        }
+    }
+}
+
+if (project.hasProperty('coverage')) {
+    test.finalizedBy jacocoTestReport
+    check.dependsOn jacocoTestCoverageVerification
+}
+
+// ---------------------------------------------------------------------------
+// OWASP dependency-check (mirror of the `owasp` Maven profile – gated by -Powasp)
+// Run with: ./gradlew dependencyCheckAnalyze -Powasp
+// ---------------------------------------------------------------------------
+dependencyCheck {
+    failBuildOnCVSS = 7.0f
+    suppressionFiles = [file('config/dependency-check/project-suppression.xml').absolutePath]
+    analyzers {
+        assemblyEnabled = false
+    }
+    skipConfigurations = ['integrationTestCompileClasspath', 'integrationTestRuntimeClasspath']
+}
+
+if (project.hasProperty('owasp')) {
+    check.dependsOn 'dependencyCheckAnalyze'
+}
+
+// ---------------------------------------------------------------------------
+// Publishing (mirror of <distributionManagement> – JFrog Artifactory virtual repo)
+// Credentials may be supplied via -PartifactoryUser/-PartifactoryPassword,
+// gradle.properties, or env vars ARTIFACTORY_USER / ARTIFACTORY_PASSWORD.
+// Build-info publication mirrors `jf mvn`: use `jf gradle` or `./gradlew artifactoryPublish`.
+// ---------------------------------------------------------------------------
+publishing {
+    publications {
+        bootJava(MavenPublication) {
+            artifact bootJar
+            artifact sourcesJar
+            artifact javadocJar
+            pom {
+                name = 'WebGoat'
+                description = project.description
+                url = 'https://github.com/WebGoat/WebGoat'
+                licenses {
+                    license {
+                        name = 'GNU General Public License, version 2'
+                        url  = 'https://www.gnu.org/licenses/gpl-2.0.txt'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:git@github.com:WebGoat/WebGoat.git'
+                    developerConnection = 'scm:git:git@github.com:WebGoat/WebGoat.git'
+                    url = 'https://github.com/WebGoat/WebGoat'
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            name = 'jfrog'
+            def isSnapshot = version.toString().endsWith('SNAPSHOT')
+            url = 'https://psazuse.jfrog.io/artifactory/cg-lab-mvn-by-virtual'
+            credentials {
+                username = (project.findProperty('artifactoryUser')
+                            ?: System.getenv('ARTIFACTORY_USER')) ?: ''
+                password = (project.findProperty('artifactoryPassword')
+                            ?: System.getenv('ARTIFACTORY_PASSWORD')) ?: ''
+            }
+        }
+    }
+}
+
+artifactory {
+    publish {
+        contextUrl = 'https://psazuse.jfrog.io/artifactory'
+        repository {
+            repoKey = 'cg-lab-mvn-by-virtual'
+            username = (project.findProperty('artifactoryUser')
+                        ?: System.getenv('ARTIFACTORY_USER')) ?: ''
+            password = (project.findProperty('artifactoryPassword')
+                        ?: System.getenv('ARTIFACTORY_PASSWORD')) ?: ''
+        }
+        defaults {
+            publications('bootJava')
+            publishArtifacts = true
+            publishPom = true
+        }
+    }
+}

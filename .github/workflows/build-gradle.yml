@@ -1,0 +1,32 @@
+name: "Gradle build"
+on:
+    pull_request:
+        paths-ignore:
+            - '.txt'
+            - 'LICENSE'
+            - 'docs/**'
+        branches: [ main ]
+    push:
+        branches:
+            - main
+    workflow_dispatch:
+
+jobs:
+    build:
+        runs-on: ${{ matrix.os }}
+        strategy:
+            fail-fast: true
+            matrix:
+                os: [ ubuntu-latest, macos-13, windows-latest ]
+            max-parallel: 1
+        steps:
+            -   uses: actions/checkout@v4.1.6
+            -   name: Set up JDK
+                uses: ./.github/actions/java-setup
+                with:
+                    cache: 'gradle'
+            -   name: Validate wrapper
+                uses: gradle/actions/wrapper-validation@v4
+            -   name: Build with Gradle
+                run: ./gradlew --no-daemon --stacktrace check
+                shell: bash

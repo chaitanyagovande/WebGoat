@@ -1,0 +1,53 @@
+// ---------------------------------------------------------------------------
+// All plugin and dependency resolution goes through the JFrog Artifactory
+// virtual repository. The virtual repo MUST aggregate (at least):
+//   * a remote proxying https://plugins.gradle.org/m2/   (for Gradle plugins)
+//   * a remote proxying https://repo.maven.apache.org/maven2/ (for libraries)
+//
+// Credentials (in order of precedence):
+//   1. -PartifactoryUser=<u> -PartifactoryPassword=<p>  on the command line
+//   2. ~/.gradle/gradle.properties   (recommended for local dev, not committed)
+//          artifactoryUser=<u>
+//          artifactoryPassword=<identity-or-reference-token>
+//   3. Environment variables ARTIFACTORY_USER / ARTIFACTORY_PASSWORD (CI)
+//   4. `jf gradle` injects credentials automatically from `jf c add`.
+//
+// NOTE: Gradle requires `pluginManagement` to be the FIRST statement in this
+// file – nothing (not even `def`s) can come before it. Hence the credential
+// lookup is repeated inline in each block.
+// ---------------------------------------------------------------------------
+
+pluginManagement {
+    repositories {
+        maven {
+            name = 'jfrogVirtual'
+            url  = 'https://psazuse.jfrog.io/artifactory/blueyonder-gradle-virtual'
+            credentials {
+                username = (providers.gradleProperty('artifactoryUser').getOrNull()
+                        ?: System.getenv('ARTIFACTORY_USER')) ?: ''
+                password = (providers.gradleProperty('artifactoryPassword').getOrNull()
+                        ?: System.getenv('ARTIFACTORY_PASSWORD')) ?: ''
+            }
+        }
+    }
+}
+
+dependencyResolutionManagement {
+    // Fail loudly if any subproject re-introduces a `repositories { ... }`
+    // block – we want a single source of truth.
+    repositoriesMode = RepositoriesMode.PREFER_SETTINGS
+    repositories {
+        maven {
+            name = 'jfrogVirtual'
+            url  = 'https://psazuse.jfrog.io/artifactory/blueyonder-gradle-virtual'
+            credentials {
+                username = (providers.gradleProperty('artifactoryUser').getOrNull()
+                        ?: System.getenv('ARTIFACTORY_USER')) ?: ''
+                password = (providers.gradleProperty('artifactoryPassword').getOrNull()
+                        ?: System.getenv('ARTIFACTORY_PASSWORD')) ?: ''
+            }
+        }
+    }
+}
+
+rootProject.name = 'webgoat'

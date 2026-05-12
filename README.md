@@ -109,7 +109,9 @@ Open a command shell/window:
 git clone git@github.com:WebGoat/WebGoat.git
 ```
 
-Now let's start by compiling the project.
+Now let's start by compiling the project. **Two build systems are supported in parallel** – Maven (`./mvnw`, the historical default) and Gradle (`./gradlew`, Groovy DSL). Pick whichever you prefer.
+
+#### Maven
 
 ```Shell
 cd WebGoat
@@ -124,14 +126,46 @@ git checkout <<branch_name>>
 docker build -f Dockerfile . -t webgoat/webgoat
 ```
 
+#### Gradle
+
+```Shell
+cd WebGoat
+# On Linux/Mac:
+./gradlew clean check       # equivalent of `mvn clean verify` (unit + integration tests)
+./gradlew bootJar           # build target jar (output: build/libs/webgoat-<version>.jar)
+
+# On Windows:
+./gradlew.bat clean check
+
+# Build container from the Gradle output (note JAR_DIR build arg):
+docker build -f Dockerfile --build-arg JAR_DIR=build/libs . -t webgoat/webgoat
+```
+
+Common command equivalents:
+
+| Goal                         | Maven                            | Gradle                                                |
+| ---------------------------- | -------------------------------- | ----------------------------------------------------- |
+| Full verify (unit + IT)      | `./mvnw clean verify`            | `./gradlew clean check`                               |
+| Package executable jar       | `./mvnw package -DskipTests`     | `./gradlew bootJar -x test -x integrationTest`        |
+| Run the application          | `./mvnw spring-boot:run`         | `./gradlew bootRun`                                   |
+| Unit-test coverage           | `./mvnw -Pcoverage test`         | `./gradlew test jacocoTestReport -Pcoverage`          |
+| OWASP dependency check       | `./mvnw -Powasp verify`          | `./gradlew dependencyCheckAnalyze -Powasp`            |
+| Format / style check         | `./mvnw spotless:check`          | `./gradlew spotlessCheck checkstyleMain`              |
+| Apply auto-formatting        | `./mvnw spotless:apply`          | `./gradlew spotlessApply`                             |
+| Publish to JFrog Artifactory | `jf mvn deploy …`                | `jf gradle artifactoryPublish …`                      |
+
 Now we are ready to run the project. WebGoat is using Spring Boot.
 
 ```Shell
-# On Linux/Mac:
+# Maven – On Linux/Mac:
 ./mvnw spring-boot:run
-# On Windows:
+# Maven – On Windows:
 ./mvnw.cmd spring-boot:run
 
+# Gradle – On Linux/Mac:
+./gradlew bootRun
+# Gradle – On Windows:
+./gradlew.bat bootRun
 ```
 
 ... you should be running WebGoat on http://localhost:8080/WebGoat momentarily.
@@ -162,4 +196,20 @@ Or in a docker run it would (once this version is pushed into docker hub) look l
 ```Shell
 docker run -d -p 127.0.0.1:8080:8080 -p 127.0.0.1:9090:9090 -e EXCLUDE_CATEGORIES="CLIENT_SIDE,GENERAL,CHALLENGE" -e EXCLUDE_LESSONS="SqlInjectionAdvanced,SqlInjectionMitigations" webgoat/webgoat
 ```
+
+## Maven vs Gradle – known differences
+
+The Gradle build aims for behavioural parity with `pom.xml` but a few things differ
+in form:
+
+* `pom.xml` formatting (the Spotless `<pom>`/sortPom block) is **only** enforced by
+  Maven. If you edit `pom.xml`, run `./mvnw spotless:apply`. Gradle does not
+  touch `pom.xml`.
+* The `start-server` integration-test orchestration is implemented in Gradle as
+  the custom `startWebGoat` / `stopWebGoat` tasks (plain Groovy / `ProcessBuilder`).
+  Behaviour matches `process-exec-maven-plugin` but log lines look different.
+* Gradle 9.1+ is required because of Java 25 support. The wrapper already pins
+  this for you.
+* Java 25 is fetched automatically by Gradle's toolchain support if it isn't
+  already installed locally.
 

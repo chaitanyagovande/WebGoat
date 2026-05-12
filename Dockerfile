@@ -11,7 +11,10 @@ RUN \
 
 USER webgoat
 
-COPY --chown=webgoat target/webgoat-*.jar /home/webgoat/webgoat.jar
+# JAR_DIR defaults to Maven's output directory.
+# For a Gradle build pass --build-arg JAR_DIR=build/libs to use ./gradlew bootJar output.
+ARG JAR_DIR=target
+COPY --chown=webgoat ${JAR_DIR}/webgoat-*.jar /home/webgoat/webgoat.jar
 
 EXPOSE 8080
 EXPOSE 9090

@@ -1,0 +1,81 @@
+# ---------------------------------------------------------------------------
+# Frogbot v2 – Repository scan on push, GRADLE only.
+#
+# This is the Gradle-scoped counterpart of `frogbot-scan-pr.yml` (the
+# Maven-scoped PR scan). It runs on every push to `cust-by` (or on manual
+# dispatch) and uses Frogbot's `scan-repository` mode, which can open an
+# aggregated fix-PR for any vulnerable Gradle dependencies it finds.
+#
+# Scope is constrained to Gradle by `JF_PATH_EXCLUSIONS` (Maven manifest is
+# excluded). Authentication to JFrog – including the dep-resolution repo set
+# via `JF_DEPS_REPO` – is handled entirely by OIDC, so no Artifactory
+# username/password secrets are required.
+#
+# Docs:
+#   https://docs.jfrog-applications.jfrog.io/jfrog-applications/frogbot
+#   https://docs.jfrog-applications.jfrog.io/jfrog-applications/frogbot/setup-frogbot/frogbot-environment-variables
+# ---------------------------------------------------------------------------
+name: "Frogbot Scan Repository (Gradle)"
+on:
+    workflow_dispatch:
+    push:
+        branches:
+            - gradle-support
+
+permissions:
+    contents: write        # Frogbot needs this to push the aggregated fix-PR branch.
+    pull-requests: write   # Frogbot needs this to open the fix PR itself.
+    id-token: write        # OIDC authentication with JFrog.
+
+jobs:
+    scan-repository-gradle:
+        runs-on: ubuntu-latest
+        environment: frogbot
+        steps:
+            -   name: "Clone VCS"
+                uses: actions/checkout@v4
+
+            # Frogbot resolves Gradle dependency trees by invoking ./gradlew,
+            # so the runner needs a matching JDK and a populated Gradle cache.
+            -   name: "Set up JDK (Java 25)"
+                uses: ./.github/actions/java-setup
+                with:
+                    cache: 'gradle'
+
+            -   name: "Validate Gradle wrapper"
+                uses: gradle/actions/wrapper-validation@v4
+
+            # Defensive: in some checkouts (forks, Windows, self-hosted) the
+            # executable bit can be lost. Cheap insurance.
+            -   name: "Make gradlew executable"
+                shell: bash
+                run: chmod +x ./gradlew
+
+            # Warm up the wrapper so Gradle's distribution is on disk before
+            # Frogbot starts. `--version` does not resolve any dependencies,
+            # so no Artifactory credentials are required here.
+            -   name: "Warm up Gradle wrapper"
+                shell: bash
+                run: ./gradlew --version
+
+            -   name: "Run Frogbot Repository Scan (Gradle)"
+                uses: jfrog/frogbot@v2
+                id: frogbot-gradle
+                env:
+                    JF_URL: ${{ vars.JF_URL }}
+                    JF_GIT_TOKEN: ${{ secrets.JF_GITHUB_TOKEN }}
+                    JF_INCLUDE_ALL_VULNERABILITIES: "true"
+                    JFROG_CLI_LOG_LEVEL: ${{ vars.JF_LOG_LEVEL }}
+                    JF_GIT_AGGREGATE_FIXES: "true"
+                    JF_WATCHES: "CG_SEC-IDE-bl"
+                    # Resolve Gradle dependencies through the JFrog virtual
+                    # repo. Auth is handled by OIDC – no extra creds needed.
+                    JF_DEPS_REPO: "blueyonder-gradle-virtual"
+                    # Force Frogbot to invoke ./gradlew (not system `gradle`).
+                    # build-info-go reads this exact env var; the default is
+                    # auto-detect, but being explicit avoids silent PATH fallbacks.
+                    JF_USE_WRAPPER: "true"
+                    # Limit the scan to Gradle by excluding the Maven manifest.
+                    JF_PATH_EXCLUSIONS: "**/pom.xml"
+                with:
+                    oidc-provider-name: ${{ vars.JF_OIDC_PROVIDER_NAME }}

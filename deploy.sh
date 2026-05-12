@@ -1,97 +1,215 @@
-#!/bin/sh
-# Changing for new run
-callBase()
+#!/usr/bin/env bash
+# -----------------------------------------------------------------------------
+# WebGoat – JFrog deploy helper.
+#
+# Four distinct workflows:
+#   maven           – build & deploy the jar with `jf mvn` (no Docker)
+#   gradle          – build & deploy the jar with `jf gradle` (no Docker)
+#   maven-docker    – maven build  + docker image  -> Artifactory + build-info
+#   gradle-docker   – gradle build + docker image  -> Artifactory + build-info
+#
+# Usage:
+#   ./deploy.sh maven
+#   ./deploy.sh gradle
+#   ./deploy.sh maven-docker
+#   ./deploy.sh gradle-docker
+#
+# Legacy aliases (preserved for back-compat with earlier callers):
+#   ./deploy.sh base        -> maven
+#   ./deploy.sh dockerized  -> maven-docker
+# -----------------------------------------------------------------------------
+
+set -euo pipefail
+
+# Shared configuration ---------------------------------------------------------
+PROJECTKEY="cg-lab"
+JF_PLAT="psazuse.jfrog.io"
+DOCKER_REPO="cg-lab-docker"
+
+timestamp() { date +%F_%T | tr ':' '-'; }
+
+# -----------------------------------------------------------------------------
+# 1) Maven – build & deploy jar only
+# -----------------------------------------------------------------------------
+callMaven()
 {
-    TIMESTAMP=$(date +%F_%T | tr ':' '-')
+    TIMESTAMP=$(timestamp)
     BUILDNAME="cg-mvn-base-webgoat"
-    PROJECTKEY="cg-lab"
-    DIRNAME="BaseWebGoat"
 
-    echo "Base Script executed from: ${PWD} at $TIMESTAMP"
-    #rm -Rf $DIRNAME
-    #mkdir $DIRNAME
-    #git clone https://github.com/jfrog/jfrog-maven-hello-world.git $DIRNAME
-    #cd $DIRNAME
-    #cp -f ../../jfrog-maven-hello-world/pom.xml .
-    #cp -Rf ../../jfrog-maven-hello-world/.jfrog .
-    #jf c use pscloud-useast
-    jf mvn install -X --build-name $BUILDNAME --build-number $TIMESTAMP --project $PROJECTKEY
-    #jf rt bce $BUILDNAME $TIMESTAMP --project $PROJECTKEY
-    #jf rt bag $BUILDNAME $TIMESTAMP --project $PROJECTKEY
-    jf mvn deploy --build-name $BUILDNAME --build-number $TIMESTAMP --project $PROJECTKEY
-    #jf rt bp $BUILDNAME $TIMESTAMP --project $PROJECTKEY
+    echo "[maven] Script executed from: ${PWD} at ${TIMESTAMP}"
+    echo "[maven] Build: ${BUILDNAME}#${TIMESTAMP} project=${PROJECTKEY}"
+
+    jf mvn clean install -DskipTests \
+        --build-name "${BUILDNAME}" \
+        --build-number "${TIMESTAMP}" \
+        --project "${PROJECTKEY}"
+
+    jf mvn deploy -DskipTests \
+        --build-name "${BUILDNAME}" \
+        --build-number "${TIMESTAMP}" \
+        --project "${PROJECTKEY}"
+
+    jf rt bce "${BUILDNAME}" "${TIMESTAMP}" --project "${PROJECTKEY}"
+    jf rt bag "${BUILDNAME}" "${TIMESTAMP}" --project "${PROJECTKEY}"
+    jf rt bp  "${BUILDNAME}" "${TIMESTAMP}" --project "${PROJECTKEY}"
 }
 
-callDockerized()
+# -----------------------------------------------------------------------------
+# 2) Gradle – build & deploy jar only
+#    Uses .jfrog/projects/gradle.yaml for resolve/deploy configuration.
+# -----------------------------------------------------------------------------
+callGradle()
 {
-    TIMESTAMP=$(date +%F_%T | tr ':' '-')
-    BUILDNAME="cg-mvn-docker-webgoat"
-    PROJECTKEY="cg-lab"
-    DIRNAME="Dockerized"
-    JF_PLAT="psazuse.jfrog.io"
-    REPO="cg-lab-docker"
-    IMAGE=$JF_PLAT/$REPO/$BUILDNAME
-    JFROG_CLI_LOG_LEVEL=DEBUG
-    #IMAGE="psazuse.jfrog.io/cg-oci/webgoat"
+    TIMESTAMP=$(timestamp)
+    BUILDNAME="cg-gradle-base-webgoat"
 
-    echo "Dockerized Script executed from: ${PWD} at $TIMESTAMP with $DIRNAME"
+    echo "[gradle] Script executed from: ${PWD} at ${TIMESTAMP}"
+    echo "[gradle] Build: ${BUILDNAME}#${TIMESTAMP} project=${PROJECTKEY}"
 
-    # OPTION 1: Build
+    jf gradle clean bootJar \
+        --build-name "${BUILDNAME}" \
+        --build-number "${TIMESTAMP}" \
+        --project "${PROJECTKEY}"
 
-        #docker image build -f my-files/Dockerfile-mvn -t ${{ vars.JF_NAME }}.jfrog.io/${{env.RT_DOCKER_REPO_VIRTUAL}}/${{ env.BUILD_NAME }}:${{ env.BUILD_ID}} --platform "${{env.DOCKER_BUILDX_PLATFORMS}}" --metadata-file "${{env.DOCKER_METADATA_JSON}}" --push .
-    
-    jf rt bc $BUILDNAME $TIMESTAMP
+    jf gradle artifactoryPublish \
+        --build-name "${BUILDNAME}" \
+        --build-number "${TIMESTAMP}" \
+        --project "${PROJECTKEY}"
 
-    jf rt bce $BUILDNAME $TIMESTAMP --project $PROJECTKEY
-    jf rt bag $BUILDNAME $TIMESTAMP --project $DIRNAME
-    
-    docker image build -f ./Dockerfile -t $IMAGE:$TIMESTAMP --metadata-file ./metadata.json --push  .
-    IMAGE_MOD="$(cat metadata.json | jq '.["containerimage.digest"]' | tr -d '"')"
-    echo $IMAGE_MOD
-    echo "$IMAGE:$TIMESTAMP@$IMAGE_MOD" > imagefile.json
-
-    #jf docker push $IMAGE:$TIMESTAMP --build-name $BUILDNAME --build-number $TIMESTAMP --project $PROJECTKEY
-
-    jf rt bdc $REPO --image-file imagefile.json --build-name $BUILDNAME --build-number $TIMESTAMP --project $PROJECTKEY
-    jf rt bp $BUILDNAME $TIMESTAMP --project $PROJECTKEY
-
-   
-
-    
-    
-    
-    
-    # OPTION 2: Pull & Push
-
-    
-
-    #jf rt docker pull $IMAGE $REPO --build-name $BUILDNAME --build-number $TIMESTAMP --project $PROJECTKEY
-    #jf rt bce $BUILDNAME $TIMESTAMP --project $PROJECTKEY
-    #jf rt bag $BUILDNAME $TIMESTAMP --project $DIRNAME
-
-    #jf rt docker push $IMAGE $REPO --build-name $BUILDNAME --build-number $TIMESTAMP --project $PROJECTKEY
-    
-    #IMAGE_DIGEST=`docker images --digests | grep webgoat | awk '$1 == "psazuse.jfrog.io/cg-oci/webgoat" {print $3}' | awk -F '[:]' '{print $2}'`
-    #IMAGE_MOD=`echo $IMAGE | awk -F '[:]' '{ print $1 }'` #"psazuse.jfrog.io/cg-oci/cg-webgoat:latest"
-    
-    #echo $IMAGE_MOD
-    #IMAGE_DIGEST=`docker images --digests | grep webgoat | awk -v image_pattern="$image_mod" '$1 ~ image_pattern { print $3 }' | awk -F '[:]' '{print $2}'`
-    #echo $IMAGE_DIGEST
-
-    #jf rt bdc $REPO --image-file $IMAGE_DIGEST --build-name $BUILDNAME --build-number $TIMESTAMP --project $PROJECTKEY
-
-    #jf rt bp $BUILDNAME $TIMESTAMP --project $PROJECTKEY
-    
-
+    jf rt bce "${BUILDNAME}" "${TIMESTAMP}" --project "${PROJECTKEY}"
+    jf rt bag "${BUILDNAME}" "${TIMESTAMP}" --project "${PROJECTKEY}"
+    jf rt bp  "${BUILDNAME}" "${TIMESTAMP}" --project "${PROJECTKEY}"
 }
 
-echo "Script was called with $@"
-if [[ "$1" == "base" ]]; then
-    callBase
-elif [[ "$1" == "dockerized" ]]; then
-    callDockerized
-else
-    echo "Nothing here"
-fi
+# -----------------------------------------------------------------------------
+# 3) Maven + Docker – build jar with maven, package as docker image, deploy both
+# -----------------------------------------------------------------------------
+callMavenDocker()
+{
+    TIMESTAMP=$(timestamp)
+    BUILDNAME="cg-mvn-docker-webgoat"
+    IMAGE="${JF_PLAT}/${DOCKER_REPO}/${BUILDNAME}"
 
+    echo "[maven-docker] Script executed from: ${PWD} at ${TIMESTAMP}"
+    echo "[maven-docker] Build: ${BUILDNAME}#${TIMESTAMP} project=${PROJECTKEY} image=${IMAGE}:${TIMESTAMP}"
 
+    # Build the jar into target/ via maven – attach maven module to build-info.
+    jf mvn clean install -DskipTests \
+        --build-name "${BUILDNAME}" \
+        --build-number "${TIMESTAMP}" \
+        --project "${PROJECTKEY}"
+
+    jf rt bce "${BUILDNAME}" "${TIMESTAMP}" --project "${PROJECTKEY}"
+    jf rt bag "${BUILDNAME}" "${TIMESTAMP}" --project "${PROJECTKEY}"
+
+    # Build & push docker image. JAR_DIR defaults to target/ so no build-arg needed.
+    docker image build -f ./Dockerfile \
+        -t "${IMAGE}:${TIMESTAMP}" \
+        --metadata-file ./metadata.json \
+        --push .
+
+    IMAGE_MOD="$(jq -r '."containerimage.digest"' metadata.json)"
+    echo "[maven-docker] Image digest: ${IMAGE_MOD}"
+    echo "${IMAGE}:${TIMESTAMP}@${IMAGE_MOD}" > imagefile.json
+
+    # Attach docker module to the same build-info and publish.
+    jf rt bdc "${DOCKER_REPO}" \
+        --image-file imagefile.json \
+        --build-name "${BUILDNAME}" \
+        --build-number "${TIMESTAMP}" \
+        --project "${PROJECTKEY}"
+
+    jf rt bp "${BUILDNAME}" "${TIMESTAMP}" --project "${PROJECTKEY}"
+}
+
+# -----------------------------------------------------------------------------
+# 4) Gradle + Docker – build jar with gradle, package as docker image, deploy both
+# -----------------------------------------------------------------------------
+callGradleDocker()
+{
+    TIMESTAMP=$(timestamp)
+    BUILDNAME="cg-gradle-docker-webgoat"
+    IMAGE="${JF_PLAT}/${DOCKER_REPO}/${BUILDNAME}"
+
+    echo "[gradle-docker] Script executed from: ${PWD} at ${TIMESTAMP}"
+    echo "[gradle-docker] Build: ${BUILDNAME}#${TIMESTAMP} project=${PROJECTKEY} image=${IMAGE}:${TIMESTAMP}"
+
+    # Build the jar into build/libs/ via gradle – attach gradle module to build-info.
+    jf gradle clean bootJar \
+        --build-name "${BUILDNAME}" \
+        --build-number "${TIMESTAMP}" \
+        --project "${PROJECTKEY}"
+
+    jf gradle artifactoryPublish \
+        --build-name "${BUILDNAME}" \
+        --build-number "${TIMESTAMP}" \
+        --project "${PROJECTKEY}"
+
+    jf rt bce "${BUILDNAME}" "${TIMESTAMP}" --project "${PROJECTKEY}"
+    jf rt bag "${BUILDNAME}" "${TIMESTAMP}" --project "${PROJECTKEY}"
+
+    # Build & push docker image – point at gradle's output dir via build-arg.
+    docker image build -f ./Dockerfile \
+        --build-arg JAR_DIR=build/libs \
+        -t "${IMAGE}:${TIMESTAMP}" \
+        --metadata-file ./metadata.json \
+        --push .
+
+    IMAGE_MOD="$(jq -r '."containerimage.digest"' metadata.json)"
+    echo "[gradle-docker] Image digest: ${IMAGE_MOD}"
+    echo "${IMAGE}:${TIMESTAMP}@${IMAGE_MOD}" > imagefile.json
+
+    # Attach docker module to the same build-info and publish.
+    jf rt bdc "${DOCKER_REPO}" \
+        --image-file imagefile.json \
+        --build-name "${BUILDNAME}" \
+        --build-number "${TIMESTAMP}" \
+        --project "${PROJECTKEY}"
+
+    jf rt bp "${BUILDNAME}" "${TIMESTAMP}" --project "${PROJECTKEY}"
+}
+
+usage()
+{
+    cat <<EOF
+Usage: $0 <workflow>
+
+Workflows:
+  maven           Build & deploy jar via 'jf mvn'
+  gradle          Build & deploy jar via 'jf gradle'
+  maven-docker    Build with maven  + docker image -> Artifactory
+  gradle-docker   Build with gradle + docker image -> Artifactory
+
+Legacy aliases:
+  base            -> maven
+  dockerized      -> maven-docker
+EOF
+}
+
+# -----------------------------------------------------------------------------
+# Dispatch
+# -----------------------------------------------------------------------------
+echo "Script was called with $*"
+
+case "${1:-}" in
+    maven|base)
+        callMaven
+        ;;
+    gradle)
+        callGradle
+        ;;
+    maven-docker|dockerized)
+        callMavenDocker
+        ;;
+    gradle-docker)
+        callGradleDocker
+        ;;
+    -h|--help|help|"")
+        usage
+        ;;
+    *)
+        echo "Unknown workflow: $1" >&2
+        usage
+        exit 1
+        ;;
+esac
