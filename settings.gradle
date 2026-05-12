@@ -21,7 +21,7 @@ pluginManagement {
     repositories {
         maven {
             name = 'jfrogVirtual'
-            url  = 'https://psazuse.jfrog.io/artifactory/blueyonder-gradle-virtual'
+            url  = 'https://psazuse.jfrog.io/blueyonder-gradle-virtual'
             credentials {
                 username = (providers.gradleProperty('artifactoryUser').getOrNull()
                         ?: System.getenv('ARTIFACTORY_USER')) ?: ''
