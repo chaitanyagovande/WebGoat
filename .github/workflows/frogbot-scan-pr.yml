@@ -40,6 +40,15 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           # This ensures we are checking out the fork's code
           repository: ${{ github.event.pull_request.head.repo.full_name }}
+      # Activate the Maven-scoped Frogbot configuration. Frogbot reads
+      # `.frogbot/frogbot-config.yml`; we copy the right one in place so the
+      # sibling `frogbot-scan-pr-gradle.yml` workflow can scope to gradle
+      # without either workflow clobbering the other.
+      - name: "Activate Maven Frogbot config"
+        shell: bash
+        run: |
+          mkdir -p .frogbot
+          cp config/frogbot/maven-config.yml .frogbot/frogbot-config.yml
       - name: "Run Frogbot PR Scan"
         uses: jfrog/frogbot@v2
         id: frogbot

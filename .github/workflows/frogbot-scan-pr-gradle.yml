@@ -2,14 +2,13 @@
 # Frogbot v2 – Repository scan on push, GRADLE only.
 #
 # This is the Gradle-scoped counterpart of `frogbot-scan-pr.yml` (the
-# Maven-scoped PR scan). It runs on every push to `cust-by` (or on manual
-# dispatch) and uses Frogbot's `scan-repository` mode, which can open an
-# aggregated fix-PR for any vulnerable Gradle dependencies it finds.
+# Maven-scoped PR scan). It runs on every push to `gradle-support` (or on
+# manual dispatch) and uses Frogbot's `scan-repository` mode, which can open
+# an aggregated fix-PR for any vulnerable Gradle dependencies it finds.
 #
-# Scope is constrained to Gradle by `JF_PATH_EXCLUSIONS` (Maven manifest is
-# excluded). Authentication to JFrog – including the dep-resolution repo set
-# via `JF_DEPS_REPO` – is handled entirely by OIDC, so no Artifactory
-# username/password secrets are required.
+# Scope is constrained to Gradle by activating
+# `config/frogbot/gradle-config.yml` (which sets `scan.technologies: [gradle]`)
+# – no path exclusions required.
 #
 # Docs:
 #   https://docs.jfrog-applications.jfrog.io/jfrog-applications/frogbot
@@ -58,6 +57,16 @@ jobs:
                 shell: bash
                 run: ./gradlew --version
 
+            # Activate the Gradle-scoped Frogbot configuration. Frogbot reads
+            # `.frogbot/frogbot-config.yml`; we copy the right one in place
+            # so the same repo can host both maven and gradle scans without
+            # them clobbering each other.
+            -   name: "Activate Gradle Frogbot config"
+                shell: bash
+                run: |
+                    mkdir -p .frogbot
+                    cp config/frogbot/gradle-config.yml .frogbot/frogbot-config.yml
+
             -   name: "Run Frogbot Repository Scan (Gradle)"
                 uses: jfrog/frogbot@v2
                 id: frogbot-gradle
@@ -80,7 +89,5 @@ jobs:
                     # build-info-go reads this exact env var; the default is
                     # auto-detect, but being explicit avoids silent PATH fallbacks.
                     JF_USE_WRAPPER: "true"
-                    # Limit the scan to Gradle by excluding the Maven manifest.
-                    JF_PATH_EXCLUSIONS: "**/pom.xml"
                 with:
                     oidc-provider-name: ${{ vars.JF_OIDC_PROVIDER_NAME }}
