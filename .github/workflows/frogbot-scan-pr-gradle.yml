@@ -89,5 +89,13 @@ jobs:
                     # build-info-go reads this exact env var; the default is
                     # auto-detect, but being explicit avoids silent PATH fallbacks.
                     JF_USE_WRAPPER: "true"
+                    # Skip auto-fix PRs. Frogbot's Gradle rewriter cannot
+                    # update versions that live in `ext { ... }` properties,
+                    # Spring Boot BOM-managed deps, or transitives – which
+                    # applies to xstream, jose4j, spring-boot-starter-*,
+                    # tomcat-embed-core, etc. in this build. The scan still
+                    # runs and findings are reported via Xray + the GitHub
+                    # Security tab; we just don't create fix PRs.
+                    JF_SKIP_AUTOFIX: "true"
                 with:
                     oidc-provider-name: ${{ vars.JF_OIDC_PROVIDER_NAME }}
