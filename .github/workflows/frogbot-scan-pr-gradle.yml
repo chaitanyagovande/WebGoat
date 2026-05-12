@@ -69,8 +69,13 @@ jobs:
                     JF_GIT_AGGREGATE_FIXES: "true"
                     JF_WATCHES: "CG_SEC-IDE-bl"
                     # Resolve Gradle dependencies through the JFrog virtual
-                    # repo. Auth is handled by OIDC – no extra creds needed.
+                    # repo. NOTE: OIDC only authenticates Frogbot itself against
+                    # the JFrog platform – the embedded `gradle-dep-tree`
+                    # subprocess invokes ./gradlew which uses the credentials
+                    # declared in settings.gradle (read from these env vars).
                     JF_DEPS_REPO: "blueyonder-gradle-virtual"
+                    ARTIFACTORY_USER:     ${{ secrets.ARTIFACTORY_USER }}
+                    ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_TOKEN }}
                     # Force Frogbot to invoke ./gradlew (not system `gradle`).
                     # build-info-go reads this exact env var; the default is
                     # auto-detect, but being explicit avoids silent PATH fallbacks.
