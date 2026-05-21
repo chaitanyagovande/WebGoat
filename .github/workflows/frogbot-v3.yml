@@ -1,7 +1,7 @@
 # =============================================================================
 # Frogbot v3 — GitHub Actions Workflow (OIDC Authentication)
 # =============================================================================
-# Location: .github/workflows/frogbot.yml
+# Location: .github/workflows/frogbot-v3.yml
 #
 # Prerequisites:
 #   1. In JFrog Platform: Administration > Security > Settings > OpenID Connect
@@ -46,7 +46,7 @@ jobs:
     env:
       # --- JFrog Platform ---
       JF_URL: ${{ secrets.JF_URL }}
-      JF_OIDC_PROVIDER_NAME: "github-frogbot"   # Must match the OIDC provider name in JFrog Platform
+      JF_OIDC_PROVIDER_NAME: ${{ vars.JF_OIDC_PROVIDER_NAME }}  # Must match the OIDC provider name in JFrog Platform
 
       # --- Git context (auto-populated from GitHub event) ---
       JF_GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
