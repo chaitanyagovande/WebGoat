@@ -58,7 +58,7 @@ TestClass.class
 webgoat.gitconfig
 
 .jfrog/
-.frogbot/
+#.frogbot/
 
 /test-results/
 /playwright-report/

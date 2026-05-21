@@ -1,0 +1,129 @@
+# =============================================================================
+# Frogbot v3 Configuration File
+# =============================================================================
+# Location: .frogbot/frogbot-config.yml (from repository root)
+#
+# IMPORTANT:
+#   - Frogbot only reads this file if it already exists in the TARGET branch.
+#     If a PR adds this file but the target branch doesn't have it yet,
+#     Frogbot will ignore it. Merge it to your default branch first.
+#   - This file is OPTIONAL. Without it, Frogbot auto-discovers project
+#     structure from descriptor files (package.json, pom.xml, etc.).
+#     Use this file when you need manual control over project layout,
+#     install commands, or scan behavior.
+# =============================================================================
+
+- params:
+    # =========================================================================
+    # Git Repository Settings
+    # =========================================================================
+    git:
+      # [Mandatory] Name of the Git repository to scan
+      repoName: WebGoat
+
+      # [Mandatory] Branches to scan during repository scans (commit scans).
+      # Update this to match your default branch (main, master, develop, etc.)
+      branches:
+        - frogbotv3
+
+      # [Optional] Template for fix-PR branch names.
+      # Must include ${BRANCH_NAME_HASH} for uniqueness.
+      # Can include ${IMPACTED_PACKAGE} and ${FIX_VERSION}.
+      # branchNameTemplate: "frogbot-${IMPACTED_PACKAGE}-${BRANCH_NAME_HASH}"
+
+      # [Optional] Template for fix-PR commit messages.
+      # commitMessageTemplate: "Upgrade ${IMPACTED_PACKAGE} to ${FIX_VERSION}"
+
+      # [Optional] Template for fix-PR titles.
+      # pullRequestTitleTemplate: "[🐸 Frogbot] Upgrade ${IMPACTED_PACKAGE} to ${FIX_VERSION}"
+
+      # [Optional, Default: false]
+      # true  = one PR with all fixes grouped together
+      # false = separate PR per fix
+      # aggregateFixes: false
+
+      # [Optional] Set the commit author email for fix PRs
+      # emailAuthor: "eco-system+frogbot@jfrog.com"
+
+    # =========================================================================
+    # Scan Settings
+    # =========================================================================
+    scan:
+      # [Default: false]
+      # Show ALL existing vulnerabilities, not just those introduced by a PR
+      includeAllVulnerabilities: true
+
+      # [Default: false]
+      # Keep old Frogbot comments on PRs (don't delete previous scan results)
+      # avoidPreviousPrCommentsDeletion: false
+
+      # [Default: true]
+      # Fail the CI check if security issues are found
+      failOnSecurityIssues: false
+
+      # [Default: false]
+      # Only report/fix vulnerabilities that have a known fix version
+      fixableOnly: false
+
+      # [Optional] Minimum severity to report. Values: Low, Medium, High, Critical
+      # minSeverity: "Medium"
+
+      # [Optional] Email addresses to notify when secrets are detected in PR scans
+      # (requires JFrog Advanced Security entitlement)
+      # emailReceivers:
+      #   - security-team@company.com
+
+      # -----------------------------------------------------------------------
+      # Project Definitions
+      # -----------------------------------------------------------------------
+      # Define subprojects if Frogbot can't auto-detect your structure,
+      # or if you need custom install commands per project.
+      projects:
+        # --- Project 1: Node.js app in the root directory ---
+        - workingDirs:
+            - "."
+          # [Optional] Path exclusions for SCA scans (wildcards supported)
+          pathExclusions:
+            - "*.git*"
+            - "*node_modules*"
+            - "*test*"
+            - "*dist*"
+
+        # --- Project 2: A backend service in a subdirectory ---
+        # Uncomment and adjust if you have multiple subprojects
+        # - workingDirs:
+        #     - "services/backend"
+        #   installCommand: "npm install"
+        #   pathExclusions:
+        #     - "*node_modules*"
+        #     - "*test*"
+
+        # --- Example: .NET project requiring a custom install command ---
+        # - workingDirs:
+        #     - "src/dotnet-api"
+        #   installCommand: "dotnet restore"
+
+        # --- Example: Python project using requirements.txt ---
+        # - workingDirs:
+        #     - "ml-service"
+        #   pipRequirementsFile: "requirements.txt"
+
+        # --- Example: Gradle project using wrapper ---
+        # - workingDirs:
+        #     - "android-app"
+        #   useWrapper: true
+
+    # =========================================================================
+    # JFrog Platform Settings
+    # =========================================================================
+    jfrogPlatform:
+      # [Optional] JFrog Project key — when set, Frogbot shows only policy
+      # violations tied to this project (not all vulnerabilities).
+      # Only useful if you have active Xray policies on the project.
+      # jfrogProjectKey: "my-project"
+
+      # [Optional] Xray Watches to evaluate against.
+      # If set, scan results are scoped to violations from these watches.
+      # watches:
+      #   - "security-watch"
+      #   - "license-watch"

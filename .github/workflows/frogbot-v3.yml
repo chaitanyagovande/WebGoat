@@ -1,0 +1,109 @@
+# =============================================================================
+# Frogbot v3 — GitHub Actions Workflow (OIDC Authentication)
+# =============================================================================
+# Location: .github/workflows/frogbot.yml
+#
+# Prerequisites:
+#   1. In JFrog Platform: Administration > Security > Settings > OpenID Connect
+#      - Add a provider with your GitHub Actions OIDC issuer
+#        (https://token.actions.githubusercontent.com)
+#      - Create an Identity Mapping that maps GitHub claims to JFrog permissions
+#   2. Repository Settings > Secrets:
+#      - JF_URL: Your JFrog Platform URL (e.g. https://mycompany.jfrog.io)
+#   3. Repository Settings > Actions > General > Workflow permissions:
+#      - Select "Read and write permissions"
+#      - Enable "Allow GitHub Actions to create and approve pull requests"
+# =============================================================================
+
+name: "Frogbot Security Scan"
+
+on:
+  # Scan pull requests (uses pull_request_target for fork safety)
+  pull_request_target:
+    types: [opened, synchronize]
+
+  # Scan the default branch on push (commit/repository scan)
+  push:
+    branches:
+      - main
+
+  # Allow manual triggering
+  workflow_dispatch:
+
+permissions:
+  id-token: write        # Required for OIDC token exchange with JFrog
+  contents: write        # Required for creating fix PRs
+  pull-requests: write   # Required for PR comments/decorations
+  security-events: write # Required for GitHub Security tab integration
+
+jobs:
+  # ===========================================================================
+  # Job 1: PR Security Scan — runs on pull requests
+  # ===========================================================================
+  pr-security-scan:
+    if: github.event_name == 'pull_request_target'
+    runs-on: ubuntu-latest
+    env:
+      # --- JFrog Platform ---
+      JF_URL: ${{ secrets.JF_URL }}
+      JF_OIDC_PROVIDER_NAME: "github-frogbot"   # Must match the OIDC provider name in JFrog Platform
+
+      # --- Git context (auto-populated from GitHub event) ---
+      JF_GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      JF_GIT_PROVIDER: "github"
+      JF_GIT_OWNER: ${{ github.repository_owner }}
+      JF_GIT_REPO: ${{ github.event.repository.name }}
+      JF_GIT_PULL_REQUEST_ID: ${{ github.event.pull_request.number }}
+      JF_GIT_BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
+
+      # --- Optional tuning ---
+      # JF_MIN_SEVERITY: "Medium"                # Only report Medium+ severity
+      # JF_INCLUDE_ALL_VULNERABILITIES: "true"    # Show all vulns, not just new ones
+      # JF_FIXABLE_ONLY: "true"                   # Only show vulns with available fixes
+      # JF_DEPS_REPO: "npm-remote"                # Artifactory virtual repo for dependency resolution
+      # JFROG_CLI_LOG_LEVEL: "DEBUG"              # Enable debug logging for troubleshooting
+
+    steps:
+      - name: Download and run Frogbot v3 — scan pull request
+        run: |
+          curl -fSL \
+            -o frogbot \
+            "https://releases.jfrog.io/artifactory/frogbot/v3/[RELEASE]/frogbot-linux-amd64/frogbot"
+          chmod +x frogbot
+          ./frogbot scan-pull-request
+
+  # ===========================================================================
+  # Job 2: Repository Scan — runs on push to default branch or manual trigger
+  # ===========================================================================
+  repository-scan:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    env:
+      # --- JFrog Platform ---
+      JF_URL: ${{ secrets.JF_URL }}
+      JF_OIDC_PROVIDER_NAME: "github-frogbot"
+
+      # --- Git context ---
+      JF_GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      JF_GIT_PROVIDER: "github"
+      JF_GIT_OWNER: ${{ github.repository_owner }}
+      JF_GIT_REPO: ${{ github.event.repository.name }}
+      JF_GIT_BASE_BRANCH: ${{ github.ref_name }}
+
+      # --- Optional tuning ---
+      # JF_FAIL: "false"                          # Don't fail the workflow on findings
+      # JF_GIT_AGGREGATE_FIXES: "true"            # Group all fixes in one PR
+      # JF_SKIP_AUTOFIX: "false"                  # Let Frogbot create fix PRs
+      # JFROG_CLI_LOG_LEVEL: "DEBUG"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download and run Frogbot v3 — scan repository
+        run: |
+          curl -fSL \
+            -o frogbot \
+            "https://releases.jfrog.io/artifactory/frogbot/v3/[RELEASE]/frogbot-linux-amd64/frogbot"
+          chmod +x frogbot
+          ./frogbot scan-repository
