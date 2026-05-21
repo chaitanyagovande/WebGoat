@@ -25,7 +25,7 @@ on:
   # Scan the default branch on push (commit/repository scan)
   push:
     branches:
-      - main
+      - frogbotv3
 
   # Allow manual triggering
   workflow_dispatch:
