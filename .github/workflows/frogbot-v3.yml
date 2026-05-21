@@ -89,6 +89,7 @@ jobs:
       JF_GIT_OWNER: ${{ github.repository_owner }}
       JF_GIT_REPO: ${{ github.event.repository.name }}
       JF_GIT_BASE_BRANCH: ${{ github.ref_name }}
+      JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_TOKEN }}
 
       # --- Optional tuning ---
       # JF_FAIL: "false"                          # Don't fail the workflow on findings
