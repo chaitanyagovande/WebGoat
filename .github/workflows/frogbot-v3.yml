@@ -81,7 +81,7 @@ jobs:
     env:
       # --- JFrog Platform ---
       JF_URL: ${{ vars.JF_URL }}
-      JF_OIDC_PROVIDER_NAME: "github-frogbot"
+      #JF_OIDC_PROVIDER_NAME: "github-frogbot"
 
       # --- Git context ---
       JF_GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
