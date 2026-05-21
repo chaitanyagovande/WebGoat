@@ -90,7 +90,7 @@
     <java.version>25</java.version>
     <jaxb.version>2.3.1</jaxb.version>
     <jjwt.version>0.9.1</jjwt.version>
-    <jose4j.version>0.9.3</jose4j.version>
+    <jose4j.version>0.9.6</jose4j.version>
     <jquery.version>3.7.1</jquery.version>
     <jsoup.version>1.19.1</jsoup.version>
     <maven-compiler-plugin.version>3.14.0</maven-compiler-plugin.version>
@@ -118,7 +118,7 @@
     <webwolf.port>9090</webwolf.port>
     <wiremock.version>3.13.1</wiremock.version>
     <xml-resolver.version>1.2</xml-resolver.version>
-    <xstream.version>1.4.5</xstream.version>
+    <xstream.version>1.4.20</xstream.version>
     <!-- do not update necessary for lesson -->
     <zxcvbn.version>1.9.0</zxcvbn.version>
   </properties>
@@ -149,7 +149,7 @@
       <dependency>
         <groupId>com.thoughtworks.xstream</groupId>
         <artifactId>xstream</artifactId>
-        <version>${xstream.version}</version>
+        <version>1.4.20</version>
       </dependency>
       <dependency>
         <groupId>cglib</groupId>
@@ -195,7 +195,7 @@
       <dependency>
         <groupId>org.bitbucket.b_c</groupId>
         <artifactId>jose4j</artifactId>
-        <version>${jose4j.version}</version>
+        <version>0.9.6</version>
       </dependency>
       <dependency>
         <groupId>org.webjars</groupId>
