@@ -80,7 +80,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # --- JFrog Platform ---
-      JF_URL: ${{ secrets.JF_URL }}
+      JF_URL: ${{ vars.JF_URL }}
       JF_OIDC_PROVIDER_NAME: "github-frogbot"
 
       # --- Git context ---
