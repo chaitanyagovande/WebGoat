@@ -46,7 +46,7 @@ jobs:
     env:
       # --- JFrog Platform ---
       JF_URL: ${{ secrets.JF_URL }}
-      JF_OIDC_PROVIDER_NAME: ${{ vars.JF_OIDC_PROVIDER_NAME }}  # Must match the OIDC provider name in JFrog Platform
+      #JF_OIDC_PROVIDER_NAME: ${{ vars.JF_OIDC_PROVIDER_NAME }}  # Must match the OIDC provider name in JFrog Platform
 
       # --- Git context (auto-populated from GitHub event) ---
       JF_GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -92,8 +92,8 @@ jobs:
       JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
 
       # --- Optional tuning ---
-      # JF_FAIL: "false"                          # Don't fail the workflow on findings
-      # JF_GIT_AGGREGATE_FIXES: "true"            # Group all fixes in one PR
+      JF_FAIL: "false"                          # Don't fail the workflow on findings
+      JF_GIT_AGGREGATE_FIXES: "true"            # Group all fixes in one PR
       # JF_SKIP_AUTOFIX: "false"                  # Let Frogbot create fix PRs
       # JFROG_CLI_LOG_LEVEL: "DEBUG"
 
