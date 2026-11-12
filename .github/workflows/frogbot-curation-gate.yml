@@ -1,0 +1,57 @@
+# =============================================================================
+# Frogbot Curation Gate
+# =============================================================================
+# Runs jf curation-audit on Frogbot-authored fix PRs and reports back on the
+# pull request. Frogbot v3 picks fix versions from Xray's vulnerability DB with
+# no visibility into Curation, so any proposal can be silently blocked by
+# Curation policies at merge time. This workflow closes that gap by running an
+# explicit curation-audit against the PR head and surfacing blocked packages
+# before a human clicks "Merge".
+#
+# Advisory rollout:
+#   * Failing curation puts a red X on this job and posts a sticky PR comment.
+#   * Merge stays possible; branch protection is NOT wired to require this
+#     check yet.
+#   * Flip to hard-gate later by adding "Frogbot Curation Gate / curation-check"
+#     to the required checks under Settings -> Branches for `main`.
+#
+# Prerequisites:
+#   * JFrog Curation entitlement on the target platform (psazuse.jfrog.io)
+#   * OIDC provider named `github-frogbot` configured in JFrog with an
+#     Identity Mapping that grants curation-audit permissions
+#   * Repository secret JF_URL set to https://psazuse.jfrog.io/
+# =============================================================================
+name: "Frogbot Curation Gate"
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+      - frogbotv3   # remove once frogbotv3 is merged and no longer a testing branch
+
+permissions: {}
+
+jobs:
+  curation-check:
+    # Frogbot names its fix-PR branches `frogbot-update-…` and `frogbot-…`.
+    # Regular developer PRs go through their own CI and don't need this gate.
+    if: startsWith(github.head_ref, 'frogbot-')
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write        # OIDC token exchange with JFrog
+      contents: read         # actions/checkout
+      pull-requests: write   # post/update the sticky PR comment
+    steps:
+      - name: "Checkout PR"
+        uses: actions/checkout@v4
+
+      - name: "Run Curation Check"
+        uses: ./.github/actions/curation-check
+        with:
+          working-directory: .
+          deps-repo: cg-lab-mvn-by-virtual
+          jf-url: ${{ secrets.JF_URL }}
+          oidc-provider-name: github-frogbot
+          fail-on-blocked: "true"
+          comment-on-pr: "true"

@@ -94,7 +94,9 @@ jobs:
       # --- Optional tuning ---
       JF_FAIL: "false"                          # Don't fail the workflow on findings
       JF_GIT_AGGREGATE_FIXES: "true"            # Group all fixes in one PR
-      # JF_SKIP_AUTOFIX: "false"                  # Let Frogbot create fix PRs
+      # Curated Autofix (frogbot-curated-autofix.yml) owns the fix-PR path so
+      # that only Curation-approved versions are ever proposed. Leave this on.
+      JF_SKIP_AUTOFIX: "true"
       # JFROG_CLI_LOG_LEVEL: "DEBUG"
 
     steps:

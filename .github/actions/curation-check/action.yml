@@ -1,0 +1,206 @@
+# =============================================================================
+# Curation Check (composite action)
+# =============================================================================
+# Audits a Maven project's dependency tree against JFrog Curation policies and
+# reports findings on the calling pull request.
+#
+# Intended to run on Frogbot-generated fix PRs so that Frogbot's proposed
+# dependency upgrades are validated against Curation *before* merge — Frogbot
+# itself only consults Xray when choosing a fix version and has no visibility
+# into Curation policies, so it can happily propose a version that Curation
+# will block at resolution time.
+#
+# Behavior:
+#   * Configures a fresh Maven config pointing at the curated virtual repo
+#   * Runs `jf curation-audit --format=json`
+#   * Emits GitHub annotations for each blocked package
+#   * Posts (or updates) a single sticky PR comment with the summary
+#   * Exits non-zero if `fail-on-blocked=true` and any blocked package found
+#
+# Auth model:
+#   Uses OIDC via `jfrog/setup-jfrog-cli@v4`. The calling workflow MUST grant
+#   `id-token: write` and configure a matching JFrog OIDC provider + identity
+#   mapping. `pull-requests: write` is required to post the PR comment.
+# =============================================================================
+name: "Curation Check"
+description: "Audit Maven dependencies against JFrog Curation policies and report on the PR"
+
+inputs:
+  working-directory:
+    description: "Directory containing the pom.xml to audit"
+    required: false
+    default: "."
+  deps-repo:
+    description: "Curated virtual Artifactory repository to resolve through"
+    required: true
+  jf-url:
+    description: "JFrog Platform base URL (e.g. https://psazuse.jfrog.io/)"
+    required: true
+  oidc-provider-name:
+    description: "JFrog OIDC provider name used for the GitHub -> JFrog token exchange"
+    required: true
+  fail-on-blocked:
+    description: "Exit non-zero when blocked packages are found. In advisory setups leave this 'true' but do NOT require the check in branch protection."
+    required: false
+    default: "true"
+  comment-on-pr:
+    description: "Post/update a sticky PR comment summarising the audit"
+    required: false
+    default: "true"
+
+outputs:
+  blocked-count:
+    description: "Number of packages blocked by Curation policies"
+    value: ${{ steps.parse.outputs.blocked_count }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Set up JDK 21"
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: "21"
+        cache: maven
+
+    - name: "Set up JFrog CLI (OIDC)"
+      uses: jfrog/setup-jfrog-cli@v4
+      env:
+        JF_URL: ${{ inputs.jf-url }}
+      with:
+        oidc-provider-name: ${{ inputs.oidc-provider-name }}
+
+    - name: "Point Maven at the curated virtual repo"
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        jf mvn-config \
+          --repo-resolve-releases  "${{ inputs.deps-repo }}" \
+          --repo-resolve-snapshots "${{ inputs.deps-repo }}"
+
+    - name: "Run jf curation-audit"
+      id: audit
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        set +e
+        jf curation-audit --format=json > curation.json 2> curation.stderr
+        rc=$?
+        echo "audit_rc=$rc" >> "$GITHUB_OUTPUT"
+        # Guarantee a readable JSON file for the parse step below.
+        [ -s curation.json ] || echo '{}' > curation.json
+        # Never fail here — reporting and gating happen in later steps.
+        exit 0
+
+    - name: "Parse results, annotate, and comment on PR"
+      id: parse
+      if: ${{ github.event_name == 'pull_request' }}
+      uses: actions/github-script@v7
+      env:
+        WORKING_DIRECTORY: ${{ inputs.working-directory }}
+        DEPS_REPO: ${{ inputs.deps-repo }}
+        COMMENT_ON_PR: ${{ inputs.comment-on-pr }}
+        AUDIT_RC: ${{ steps.audit.outputs.audit_rc }}
+      with:
+        script: |
+          const fs      = require('fs');
+          const path    = require('path');
+          const marker  = '<!-- frogbot-curation-gate -->';
+          const workDir = process.env.WORKING_DIRECTORY || '.';
+          const depsRepo = process.env.DEPS_REPO;
+          const auditRc  = process.env.AUDIT_RC;
+          const shouldComment = process.env.COMMENT_ON_PR === 'true';
+
+          let raw = '';
+          try { raw = fs.readFileSync(path.join(workDir, 'curation.json'), 'utf8'); } catch (e) { raw = '{}'; }
+
+          let json = null;
+          try { json = JSON.parse(raw); } catch (e) { json = null; }
+
+          // The exact schema of `jf curation-audit --format=json` has changed
+          // across CLI versions. Rather than binding to a specific shape, walk
+          // the tree and pick up any object whose status is "blocked".
+          const blocked = [];
+          (function walk(node) {
+            if (!node || typeof node !== 'object') return;
+            if (Array.isArray(node)) { node.forEach(walk); return; }
+            if (node.status === 'blocked') {
+              blocked.push({
+                name:    node.package_name    || node.component_id || 'unknown',
+                version: node.package_version || 'unknown',
+                policy:  node.policy_name
+                         || (node.policies && node.policies[0] && node.policies[0].policy)
+                         || 'unknown',
+                reason:  (node.reason
+                         || (node.policies && node.policies[0] && node.policies[0].explanation)
+                         || 'no reason given').replace(/\|/g, '\\|'),
+              });
+            }
+            Object.values(node).forEach(walk);
+          })(json);
+
+          core.setOutput('blocked_count', String(blocked.length));
+
+          // Surface each blocked package in the Checks tab.
+          for (const b of blocked) {
+            core.error(
+              `Curation blocked ${b.name}@${b.version} — ${b.policy}: ${b.reason}`,
+              { title: `Curation policy violation: ${b.name}` },
+            );
+          }
+
+          if (!shouldComment) return;
+
+          let body;
+          if (blocked.length === 0 && auditRc === '0') {
+            body = `${marker}\n## Frogbot Curation Gate — passed\n\n` +
+                   `All dependencies in this PR pass Curation policies on \`${depsRepo}\`.`;
+          } else if (blocked.length === 0) {
+            body = `${marker}\n## Frogbot Curation Gate — audit tool error\n\n` +
+                   `\`jf curation-audit\` exited with code \`${auditRc}\` but no ` +
+                   `blocked packages were parsed from its output. See the workflow ` +
+                   `logs for details.`;
+          } else {
+            const rows = blocked
+              .map(b => `| \`${b.name}\` | \`${b.version}\` | ${b.policy} | ${b.reason} |`)
+              .join('\n');
+            body =
+              `${marker}\n## Frogbot Curation Gate — ${blocked.length} blocked package(s)\n\n` +
+              `This PR includes package versions that violate Curation policies on ` +
+              `\`${depsRepo}\`. Merging will break dependency resolution.\n\n` +
+              `| Package | Version | Policy | Reason |\n|---|---|---|---|\n${rows}\n\n` +
+              `**Options:**\n` +
+              `- Adjust the Xray watch to prefer a different fix version\n` +
+              `- Update the Curation policy if this is a false positive\n` +
+              `- Close this PR and let Frogbot regenerate with fresh candidates\n`;
+          }
+
+          const { data: comments } = await github.rest.issues.listComments({
+            owner:        context.repo.owner,
+            repo:         context.repo.repo,
+            issue_number: context.issue.number,
+          });
+          const existing = comments.find(c => c.body && c.body.includes(marker));
+          if (existing) {
+            await github.rest.issues.updateComment({
+              owner:      context.repo.owner,
+              repo:       context.repo.repo,
+              comment_id: existing.id,
+              body,
+            });
+          } else {
+            await github.rest.issues.createComment({
+              owner:        context.repo.owner,
+              repo:         context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+          }
+
+    - name: "Fail the check if blocked packages were found"
+      if: ${{ inputs.fail-on-blocked == 'true' && steps.parse.outputs.blocked_count != '0' && steps.parse.outputs.blocked_count != '' }}
+      shell: bash
+      run: |
+        echo "Curation gate failing check: ${{ steps.parse.outputs.blocked_count }} blocked package(s)."
+        echo "Advisory mode: merge remains possible unless branch protection requires this check."
+        exit 1

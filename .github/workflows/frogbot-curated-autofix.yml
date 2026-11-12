@@ -1,0 +1,65 @@
+# =============================================================================
+# Frogbot Curated Autofix
+# =============================================================================
+# Custom autofix pipeline that only opens PRs with dependency upgrades whose
+# fix versions have been pre-validated against JFrog Curation policies. Runs
+# alongside (and eventually replaces) Frogbot v3's built-in fix-PR feature.
+#
+# What it does on every push to the target branch:
+#   1. `jf audit --format=simple-json` — discover vulnerable dependencies and
+#      their Xray-supplied fix candidates.
+#   2. For each candidate version, HEAD-probe the artifact through the
+#      curated virtual repo — the ground-truth Curation check.
+#   3. Apply the lowest approved version per package via
+#      `mvn versions:use-dep-version`.
+#   4. Force-push to a deterministic branch and open or update a single PR.
+#
+# Prerequisites (same as frogbot-v3.yml):
+#   * JFrog Curation entitlement on the target platform (psazuse.jfrog.io).
+#   * OIDC provider `github-frogbot` mapped to a Curation-permitted identity.
+#   * Secret JF_URL configured.
+#   * The existing `frogbot-v3.yml` should set JF_SKIP_AUTOFIX="true" so
+#     Frogbot's own fix PR doesn't race this workflow.
+# =============================================================================
+name: "Frogbot Curated Autofix"
+
+on:
+  push:
+    branches:
+      - main
+      - frogbotv3   # remove once frogbotv3 is merged
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: "Skip pushing the branch and opening the PR"
+        required: false
+        default: "false"
+        type: choice
+        options: ["false", "true"]
+
+permissions: {}
+
+jobs:
+  curated-autofix:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write        # push the deterministic fix branch
+      pull-requests: write   # open/update the fix PR
+      id-token: write        # OIDC token exchange with JFrog
+    steps:
+      - name: "Checkout base branch"
+        uses: actions/checkout@v4
+        with:
+          # Full history lets `git log` and PR bodies reference prior fixes.
+          fetch-depth: 0
+
+      - name: "Run curated autofix"
+        uses: ./.github/actions/curated-autofix
+        with:
+          working-directory: .
+          deps-repo: cg-lab-mvn-by-virtual
+          jf-url: ${{ secrets.JF_URL }}
+          oidc-provider-name: github-frogbot
+          base-branch: ${{ github.ref_name }}
+          dry-run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry-run || 'false' }}
+          github-token: ${{ github.token }}

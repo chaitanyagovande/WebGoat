@@ -1,0 +1,105 @@
+# =============================================================================
+# Curated Autofix (composite action)
+# =============================================================================
+# End-to-end orchestrator that replaces Frogbot's fix-PR path with a
+# Curation-aware equivalent. Runs on the base branch (not on PRs) and either
+# opens or updates a single deterministic fix PR whose upgrades have already
+# been verified against JFrog Curation policies.
+#
+# See scripts/curated-autofix.sh for the logic; this file wires up JDK, JFrog
+# CLI (via OIDC), gh CLI, and the shell script itself.
+#
+# Required workflow permissions:
+#   contents:       write   (push the fix branch)
+#   pull-requests:  write   (open/update the PR)
+#   id-token:       write   (OIDC token exchange with JFrog)
+# =============================================================================
+name: "Curated Autofix"
+description: "Discover vulns, filter Xray fix candidates through Curation, and open a curated fix PR"
+
+inputs:
+  working-directory:
+    description: "Directory containing the pom.xml to audit and update"
+    required: false
+    default: "."
+  deps-repo:
+    description: "Curated virtual Artifactory repository to resolve through"
+    required: true
+  jf-url:
+    description: "JFrog Platform base URL"
+    required: true
+  oidc-provider-name:
+    description: "JFrog OIDC provider name for the GitHub -> JFrog token exchange"
+    required: true
+  base-branch:
+    description: "Base branch that the fix PR targets"
+    required: true
+  fix-branch:
+    description: "Name of the fix branch. Defaults to frogbot-curated-fixes-<base-branch>"
+    required: false
+    default: ""
+  dry-run:
+    description: "If 'true', print planned changes but do not push a branch or open a PR"
+    required: false
+    default: "false"
+  github-token:
+    description: "Token used by the gh CLI to open/update the PR (typically github.token)"
+    required: true
+
+outputs:
+  approved-count:
+    description: "Number of packages with a curation-approved fix version"
+    value: ${{ steps.autofix.outputs.approved-count }}
+  skipped-count:
+    description: "Number of packages skipped because no candidate passed Curation"
+    value: ${{ steps.autofix.outputs.skipped-count }}
+  applied-count:
+    description: "Number of fixes actually written to pom.xml"
+    value: ${{ steps.autofix.outputs.applied-count }}
+  unapplied-count:
+    description: "Approved fixes that couldn't be written (BOM/parent/transitive)"
+    value: ${{ steps.autofix.outputs.unapplied-count }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Set up JDK 21"
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: "21"
+        cache: maven
+
+    - name: "Set up JFrog CLI (OIDC)"
+      uses: jfrog/setup-jfrog-cli@v4
+      env:
+        JF_URL: ${{ inputs.jf-url }}
+      with:
+        oidc-provider-name: ${{ inputs.oidc-provider-name }}
+
+    - name: "Point Maven at the curated virtual repo"
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        jf mvn-config \
+          --repo-resolve-releases  "${{ inputs.deps-repo }}" \
+          --repo-resolve-snapshots "${{ inputs.deps-repo }}"
+
+    - name: "Run curated-autofix orchestrator"
+      id: autofix
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        DEPS_REPO:         ${{ inputs.deps-repo }}
+        JF_URL:            ${{ inputs.jf-url }}
+        BASE_BRANCH:       ${{ inputs.base-branch }}
+        FIX_BRANCH:        ${{ inputs.fix-branch }}
+        DRY_RUN:           ${{ inputs.dry-run }}
+        WORKING_DIRECTORY: "."
+        GH_TOKEN:          ${{ inputs.github-token }}
+      run: |
+        # Resolve default fix branch if the caller didn't override.
+        if [ -z "${FIX_BRANCH:-}" ]; then
+          export FIX_BRANCH="frogbot-curated-fixes-${BASE_BRANCH}"
+        fi
+        "${{ github.action_path }}/scripts/curated-autofix.sh"
